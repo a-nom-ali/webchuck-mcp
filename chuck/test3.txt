@@ -5,10 +5,10 @@ SndBuf hihat => master;
 SndBuf clap => master;
 
 // Load samples
-me.dir() + "audio_files/kick.wav" => kick.read;
-me.dir() + "audio_files/snare.wav" => snare.read;
-me.dir() + "audio_files/hihat.wav" => hihat.read;
-me.dir() + "audio_files/clap.wav" => clap.read;
+"kick.wav" => kick.read;
+"snare.wav" => snare.read;
+"hihat.wav" => hihat.read;
+"clap.wav" => clap.read;
 
 // Set gains
 0.8 => master.gain;

@@ -113,16 +113,11 @@
         const SERVER_URL = 'http://localhost:3030';
         const WS_URL = 'ws://localhost:3030';
 
-        function setLogCallback(msg) {
-            consoleOutput.textContent += '\n' + msg;
-            consoleOutput.scrollTop = consoleOutput.scrollHeight;
-        }
-
         // Wait for DOM content to be loaded
         document.addEventListener('DOMContentLoaded', function() {
             // DOM Elements
             const connectBtn = document.getElementById('connect-btn');
-            const connectServerBtn = document.getElementById('connect-server-btn');
+            const startServerBtn = document.getElementById('start-server-btn');
             const runBtn = document.getElementById('run-btn');
             const stopBtn = document.getElementById('stop-btn');
             const saveBtn = document.getElementById('save-btn');
@@ -137,10 +132,16 @@
             const examplesDropdown = document.getElementById('examples-dropdown');
             const loadExampleBtn = document.getElementById('load-example-btn');
 
+            function setLogCallback(msg) {
+                consoleOutput.textContent += '\n' + msg;
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+
+
             // Initialize WebChucK
             connectBtn.addEventListener('click', async () => {
                 try {
-                    consoleOutput.textContent = 'Initializing WebChucK...';
+                    setLogCallback('Initializing WebChucK...');
                     connectionStatus.textContent = 'Connecting...';
 
                     // Initialize WebChucK
@@ -171,7 +172,7 @@
                     }
 
                     connectionStatus.textContent = 'Connected to WebChucK';
-                    consoleOutput.textContent = 'WebChucK initialized successfully!';
+                    setLogCallback('WebChucK initialized successfully!');
 
                     // Enable buttons
                     runBtn.disabled = false;
@@ -180,7 +181,7 @@
 
                 } catch (error) {
                     console.error('Error initializing WebChucK:', error);
-                    consoleOutput.textContent = `Error: ${error.message}`;
+                    setLogCallback(`Error: ${error.message}`);
                     connectionStatus.textContent = 'Connection failed';
                 }
             });
@@ -258,7 +259,7 @@
             // Run ChucK code
             runBtn.addEventListener('click', async () => {
                 if (!theChuck) {
-                    consoleOutput.textContent = 'Please connect to WebChucK first';
+                    setLogCallback('Please connect to WebChucK first');
                     return;
                 }
 
@@ -271,7 +272,7 @@
                     // Run new code
                     theChuck.runCode(code);
 
-                    consoleOutput.textContent = 'Code running...';
+                    setLogCallback('Code running...');
 
                     // If connected to server, send execution notification
                     if (serverSocket && serverSocket.readyState === WebSocket.OPEN && sessionId) {
@@ -300,7 +301,7 @@
 
                 } catch (error) {
                     console.error('Error running ChucK code:', error);
-                    consoleOutput.textContent = `Error: ${error.message}`;
+                    setLogCallback(`Error: ${error.message}`);
                 }
             });
 
@@ -315,7 +316,7 @@
                     // Stop recording
                     stopRecording();
 
-                    consoleOutput.textContent = 'Code stopped';
+                    setLogCallback('Code stopped');
 
                     // If connected to server, send stop notification
                     if (serverSocket && serverSocket.readyState === WebSocket.OPEN && sessionId) {
@@ -340,7 +341,7 @@
 
                 } catch (error) {
                     console.error('Error stopping ChucK code:', error);
-                    consoleOutput.textContent = `Error: ${error.message}`;
+                    setLogCallback(`Error: ${error.message}`);
                 }
             });
 
@@ -351,7 +352,7 @@
                 }
 
                 if (audioChunks.length === 0) {
-                    consoleOutput.textContent = 'No audio recorded yet';
+                    setLogCallback('No audio recorded yet');
                     return;
                 }
 
@@ -370,7 +371,7 @@
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
 
-                consoleOutput.textContent = 'Audio saved locally';
+                setLogCallback('Audio saved locally');
 
                 // If connected to server, upload to server as well
                 if (serverSocket && serverSocket.readyState === WebSocket.OPEN) {
@@ -398,7 +399,7 @@
             // Load samples list
             loadSamplesBtn.addEventListener('click', () => {
                 if (!serverSocket || serverSocket.readyState !== WebSocket.OPEN) {
-                    consoleOutput.textContent = 'Please connect to server first';
+                    setLogCallback('Please connect to server first');
                     return;
                 }
 
@@ -431,21 +432,21 @@ buf.length() => now;`;
                     })
                     .catch(error => {
                         console.error('Error loading samples:', error);
-                        consoleOutput.textContent = `Error loading samples: ${error.message}`;
+                        setLogCallback(`Error loading samples: ${error.message}`);
                     });
             });
 
             // Upload file
             uploadBtn.addEventListener('click', () => {
                 if (!fileUpload.files || fileUpload.files.length === 0) {
-                    consoleOutput.textContent = 'Please select a file to upload';
+                    setLogCallback('Please select a file to upload');
                     return;
                 }
 
                 const file = fileUpload.files[0];
 
                 if (!serverSocket || serverSocket.readyState !== WebSocket.OPEN) {
-                    consoleOutput.textContent = 'Please connect to server first';
+                    setLogCallback('Please connect to server first');
                     return;
                 }
 
@@ -462,13 +463,13 @@ buf.length() => now;`;
                     })
                         .then(response => response.json())
                         .then(data => {
-                            consoleOutput.textContent = `File uploaded: ${data.filename}`;
+                            setLogCallback(`File uploaded: ${data.filename}`);
                             // Refresh the samples list
                             loadSamplesBtn.click();
                         })
                         .catch(error => {
                             console.error('Error uploading file:', error);
-                            consoleOutput.textContent = `Error uploading file: ${error.message}`;
+                            setLogCallback(`Error uploading file: ${error.message}`);
                         });
                 };
                 reader.readAsArrayBuffer(file);
@@ -664,7 +665,7 @@ for (0 => int i; i < 8; i++) {
         <h2 class="section-title">Connection Status</h2>
         <div class="status" id="connection-status">Not connected</div>
         <button id="connect-btn">Connect to WebChucK</button>
-        <button id="connect-server-btn">Connect to Server</button>
+        <button id="start-server-btn">Connect to Server</button>
         <span id="session-id"></span>
     </div>
 

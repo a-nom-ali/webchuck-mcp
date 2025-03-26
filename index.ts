@@ -32,6 +32,28 @@ const server = http.createServer(app);
 // Create WebSocket server
 const wss = new WebSocketServer({ server }); // Corrected instantiation
 
+// Choose the appropriate transport
+// if (process.env.MCP_TRANSPORT === 'http') {
+//     // Use HTTP transport (Consider using SSEServerTransport instead)
+//     const transport = new HttpServerTransport({ // Consider replacing with SSEServerTransport
+//         app,
+//         path: '/api/mcp',
+//     });
+//     await mcpServer.connect(transport);
+//     console.log(`MCP HTTP server available at http://localhost:${PORT}/api/mcp`);
+// } else {
+// Use STDIO transport by default
+const transport = new StdioServerTransport();
+// ==== Create MCP Server ====
+const mcpServer = new McpServer({
+    name: "WebChucK",
+    version: "1.0.0"
+});
+
+await mcpServer.connect(transport);
+console.log('MCP server connected via STDIO');
+// }
+
 // Store active WebChucK sessions
 const sessions = new Map<string, {
     ws: WebSocket,
@@ -286,12 +308,6 @@ app.get('/api/audio', (req, res) => {
     }
 });
 
-// ==== Create MCP Server ====
-const mcpServer = new McpServer({
-    name: "WebChucK",
-    version: "1.0.0"
-});
-
 // ==== Execute ChucK Code Tool ====
 mcpServer.tool("executeChucK",
     {
@@ -483,20 +499,26 @@ mcpServer.tool("getChucKSessions",
 mcpServer.resource(
     "audioFile",
     new ResourceTemplate("audio://{filename}", {
-        list: async () => {
+        list:
+        async () => {
             try {
                 const files = fs.readdirSync(AUDIO_DIR).filter(file =>
                     file.endsWith('.wav') || file.endsWith('.aiff')
                 );
-                return files.map(filename => ({ filename }));
+                return {
+                    resources: files.map(filename => ({
+                        name: filename,
+                        uri: `audio://${filename}`
+                    }))
+                };
             } catch (error) {
                 console.error('Error listing audio files for MCP resource:', error);
-                return;
+                return { resources: [] };
             }
         }
     }),
     async (uri, { filename }) => {
-        const filepath = path.join(AUDIO_DIR, filename);
+        const filepath = path.join(AUDIO_DIR, filename.toString());
 
         try {
             const stats = fs.statSync(filepath);
@@ -544,22 +566,26 @@ mcpServer.resource(
     "chuckExample",
     new ResourceTemplate("chuck-example://{category}/{name}", {
         list: async () => {
-            // Define available example categories and names
             const examples = [
-                { category: "basics", name: "sine-wave" },
-                { category: "basics", name: "square-wave" },
-                { category: "basics", name: "fm-synthesis" },
-                { category: "effects", name: "reverb" },
-                { category: "effects", name: "echo" },
-                { category: "effects", name: "chorus" },
-                { category: "mixing", name: "simple-mixer" },
-                { category: "mixing", name: "stereo-panner" },
-                { category: "sampling", name: "file-playback" },
-                { category: "sampling", name: "granular" },
-                { category: "drums", name: "drum-machine" },
-                { category: "drums", name: "drum-sequencer" }
+                {category: "basics", name: "sine-wave"},
+                {category: "basics", name: "square-wave"},
+                {category: "basics", name: "fm-synthesis"},
+                {category: "effects", name: "reverb"},
+                {category: "effects", name: "echo"},
+                {category: "effects", name: "chorus"},
+                {category: "mixing", name: "simple-mixer"},
+                {category: "mixing", name: "stereo-panner"},
+                {category: "sampling", name: "file-playback"},
+                {category: "sampling", name: "granular"},
+                {category: "drums", name: "drum-machine"},
+                {category: "drums", name: "drum-sequencer"}
             ];
-            return examples;
+            return {
+                resources: examples.map(example => ({
+                    name: `${example.category}: ${example.name}`,
+                    uri: `chuck-example://${example.category}/${example.name}`
+                }))
+            };
         }
     }),
     async (uri, { category, name }) => {
@@ -836,20 +862,5 @@ server.listen(PORT, () => {
     console.log(`Audio files directory: ${AUDIO_DIR}`);
 });
 
-// Choose the appropriate transport
-// if (process.env.MCP_TRANSPORT === 'http') {
-//     // Use HTTP transport (Consider using SSEServerTransport instead)
-//     const transport = new HttpServerTransport({ // Consider replacing with SSEServerTransport
-//         app,
-//         path: '/api/mcp',
-//     });
-//     await mcpServer.connect(transport);
-//     console.log(`MCP HTTP server available at http://localhost:${PORT}/api/mcp`);
-// } else {
-    // Use STDIO transport by default
-    const transport = new StdioServerTransport();
-    await mcpServer.connect(transport);
-    console.log('MCP server connected via STDIO');
-// }
 
 app.use(express.static(path.join(__dirname, 'public')));
