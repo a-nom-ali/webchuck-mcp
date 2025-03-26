@@ -864,3 +864,21 @@ server.listen(PORT, () => {
 
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+
+// Handle shutdown
+process.on('SIGINT', async () => {
+    console.info('Shutting down...');
+    await server.closeAllConnections();
+    process.exit(0);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught exception', error);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection', reason);
+});
