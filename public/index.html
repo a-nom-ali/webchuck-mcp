@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebChucK MCP Client</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section-title {
+            margin-top: 0;
+            color: #444;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.stop {
+            background-color: #f44336;
+        }
+        button.stop:hover {
+            background-color: #d32f2f;
+        }
+        pre {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: monospace;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            resize: vertical;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #e8f5e9;
+            margin-bottom: 15px;
+        }
+        .files-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .file-item {
+            padding: 5px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .file-item:hover {
+            background-color: #f0f0f0;
+        }
+        .flex-row {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+    <script type="module" defer>
+        // Import the webchuck bundle
+        import { Chuck } from './webchuck/wc-bundle.js';
+
+        // Global variables
+        let theChuck; // WebChucK instance
+        let serverSocket = null;
+        let sessionId = null;
+        let isRecording = false;
+        let audioRecorder = null;
+        let audioChunks = [];
+
+        // Server URL - update with your actual server URL
+        const SERVER_URL = 'http://localhost:3030';
+        const WS_URL = 'ws://localhost:3030';
+
+        function setLogCallback(msg) {
+            consoleOutput.textContent += '\n' + msg;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        // Wait for DOM content to be loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const connectBtn = document.getElementById('connect-btn');
+            const connectServerBtn = document.getElementById('connect-server-btn');
+            const runBtn = document.getElementById('run-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const saveBtn = document.getElementById('save-btn');
+            const codeEditor = document.getElementById('code-editor');
+            const consoleOutput = document.getElementById('console-output');
+            const connectionStatus = document.getElementById('connection-status');
+            const sessionIdElement = document.getElementById('session-id');
+            const loadSamplesBtn = document.getElementById('load-samples-btn');
+            const samplesList = document.getElementById('samples-list');
+            const fileUpload = document.getElementById('file-upload');
+            const uploadBtn = document.getElementById('upload-btn');
+            const examplesDropdown = document.getElementById('examples-dropdown');
+            const loadExampleBtn = document.getElementById('load-example-btn');
+
+            // Initialize WebChucK
+            connectBtn.addEventListener('click', async () => {
+                try {
+                    consoleOutput.textContent = 'Initializing WebChucK...';
+                    connectionStatus.textContent = 'Connecting...';
+
+                    // Initialize WebChucK
+                    while (theChuck === undefined) {
+                        theChuck = await Chuck.init([], undefined, undefined, './webchuck/');
+                    }
+
+                    connectionStatus.textContent = 'Connected to WebChucK';
+                    consoleOutput.textContent = 'WebChucK initialized successfully!';
+
+                    // Enable buttons
+                    runBtn.disabled = false;
+                    stopBtn.disabled = false;
+                    saveBtn.disabled = false;
+
+                } catch (error) {
+                    console.error('Error initializing WebChucK:', error);
+                    consoleOutput.textContent = `Error: ${error.message}`;
+                    connectionStatus.textContent = 'Connection failed';
+                }
+            });
+
+            // Connect to WebSocket server
+            connectServerBtn.addEventListener('click', () => {
+                if (serverSocket && serverSocket.readyState === WebSocket.OPEN) {
+                    serverSocket.close();
+                    connectServerBtn.textContent = 'Connect to Server';
+                    connectionStatus.textContent = 'Disconnected from server';
+                    return;
+                }
+
+                serverSocket = new WebSocket(WS_URL);
+
+                serverSocket.onopen = () => {
+                    connectionStatus.textContent = 'Connected to server';
+                    connectServerBtn.textContent = 'Disconnect from Server';
+                    consoleOutput.textContent += '\nConnected to server';
+                };
+
+                serverSocket.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+
+                        switch (data.type) {
+                            case 'session_created':
+                                sessionId = data.sessionId;
+                                sessionIdElement.textContent = `Session ID: ${sessionId}`;
+                                consoleOutput.textContent += `\nSession created: ${sessionId}`;
+                                break;
+
+                            case 'execute_code':
+                                // Execute ChucK code received from server
+                                if (theChuck) {
+                                    theChuck.runCode(data.code);
+                                    consoleOutput.textContent += `\nExecuting code from server`;
+                                }
+                                break;
+
+                            case 'stop_execution':
+                                // Stop ChucK execution
+                                if (theChuck) {
+                                    theChuck.clearChuckInstance();
+                                    consoleOutput.textContent += `\nStopped code execution from server`;
+                                }
+                                break;
+
+                            case 'audio_saved':
+                                consoleOutput.textContent += `\nAudio saved: ${data.filename}`;
+                                break;
+
+                            default:
+                                consoleOutput.textContent += `\nReceived: ${JSON.stringify(data)}`;
+                        }
+                    } catch (error) {
+                        console.error('Error parsing WebSocket message:', error);
+                    }
+                };
+
+                serverSocket.onclose = () => {
+                    connectionStatus.textContent = 'Disconnected from server';
+                    connectServerBtn.textContent = 'Connect to Server';
+                    consoleOutput.textContent += '\nDisconnected from server';
+                };
+
+                serverSocket.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    connectionStatus.textContent = 'Connection error';
+                    connectServerBtn.textContent = 'Connect to Server';
+                    consoleOutput.textContent += `\nWebSocket error: ${error.message}`;
+                };
+            });
+
+            // Run ChucK code
+            runBtn.addEventListener('click', async () => {
+                if (!theChuck) {
+                    consoleOutput.textContent = 'Please connect to WebChucK first';
+                    return;
+                }
+
+                const code = codeEditor.value;
+
+                try {
+                    // Clear previous code
+                    theChuck.clearChuckInstance();
+
+                    // Run new code
+                    theChuck.runCode(code);
+
+                    consoleOutput.textContent = 'Code running...';
+
+                    // If connected to server, send execution notification
+                    if (serverSocket && serverSocket.readyState === WebSocket.OPEN && sessionId) {
+                        fetch(`${SERVER_URL}/api/execute`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                sessionId,
+                                code
+                            })
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                consoleOutput.textContent += `\nServer notified: ${data.message}`;
+                            })
+                            .catch(error => {
+                                console.error('Error notifying server:', error);
+                                consoleOutput.textContent += `\nError notifying server: ${error.message}`;
+                            });
+                    }
+
+                    // Start recording if MediaRecorder is available
+                    startRecording();
+
+                } catch (error) {
+                    console.error('Error running ChucK code:', error);
+                    consoleOutput.textContent = `Error: ${error.message}`;
+                }
+            });
+
+            // Stop ChucK code
+            stopBtn.addEventListener('click', async () => {
+                if (!theChuck) return;
+
+                try {
+                    // Stop WebChucK
+                    theChuck.clearChuckInstance();
+
+                    // Stop recording
+                    stopRecording();
+
+                    consoleOutput.textContent = 'Code stopped';
+
+                    // If connected to server, send stop notification
+                    if (serverSocket && serverSocket.readyState === WebSocket.OPEN && sessionId) {
+                        fetch(`${SERVER_URL}/api/stop`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                sessionId
+                            })
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                consoleOutput.textContent += `\nServer notified: ${data.message}`;
+                            })
+                            .catch(error => {
+                                console.error('Error notifying server:', error);
+                                consoleOutput.textContent += `\nError notifying server: ${error.message}`;
+                            });
+                    }
+
+                } catch (error) {
+                    console.error('Error stopping ChucK code:', error);
+                    consoleOutput.textContent = `Error: ${error.message}`;
+                }
+            });
+
+            // Save audio
+            saveBtn.addEventListener('click', () => {
+                if (isRecording) {
+                    stopRecording();
+                }
+
+                if (audioChunks.length === 0) {
+                    consoleOutput.textContent = 'No audio recorded yet';
+                    return;
+                }
+
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const url = URL.createObjectURL(audioBlob);
+
+                // Create download link
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `chuck-recording-${Date.now()}.wav`;
+                document.body.appendChild(a);
+                a.click();
+
+                // Clean up
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                consoleOutput.textContent = 'Audio saved locally';
+
+                // If connected to server, upload to server as well
+                if (serverSocket && serverSocket.readyState === WebSocket.OPEN) {
+                    const formData = new FormData();
+                    formData.append('file', audioBlob, `chuck-recording-${Date.now()}.wav`);
+
+                    fetch(`${SERVER_URL}/api/upload`, {
+                        method: 'POST',
+                        body: audioBlob,
+                        headers: {
+                            'X-Filename': `chuck-recording-${Date.now()}.wav`
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            consoleOutput.textContent += `\nUploaded to server: ${data.filename}`;
+                        })
+                        .catch(error => {
+                            console.error('Error uploading to server:', error);
+                            consoleOutput.textContent += `\nError uploading: ${error.message}`;
+                        });
+                }
+            });
+
+            // Load samples list
+            loadSamplesBtn.addEventListener('click', () => {
+                if (!serverSocket || serverSocket.readyState !== WebSocket.OPEN) {
+                    consoleOutput.textContent = 'Please connect to server first';
+                    return;
+                }
+
+                fetch(`${SERVER_URL}/api/audio`)
+                    .then(response => response.json())
+                    .then(data => {
+                        samplesList.innerHTML = '';
+
+                        if (data.files.length === 0) {
+                            samplesList.innerHTML = '<div>No audio files available</div>';
+                            return;
+                        }
+
+                        data.files.forEach(file => {
+                            const fileItem = document.createElement('div');
+                            fileItem.className = 'file-item';
+                            fileItem.textContent = file;
+                            fileItem.addEventListener('click', () => {
+                                const sampleCode = `// Load and play sample
+SndBuf buf => dac;
+"${file}" => buf.read;
+0.5 => buf.gain;
+buf.length() => now;`;
+
+                                codeEditor.value = sampleCode;
+                            });
+
+                            samplesList.appendChild(fileItem);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading samples:', error);
+                        consoleOutput.textContent = `Error loading samples: ${error.message}`;
+                    });
+            });
+
+            // Upload file
+            uploadBtn.addEventListener('click', () => {
+                if (!fileUpload.files || fileUpload.files.length === 0) {
+                    consoleOutput.textContent = 'Please select a file to upload';
+                    return;
+                }
+
+                const file = fileUpload.files[0];
+
+                if (!serverSocket || serverSocket.readyState !== WebSocket.OPEN) {
+                    consoleOutput.textContent = 'Please connect to server first';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const arrayBuffer = e.target.result;
+
+                    fetch(`${SERVER_URL}/api/upload`, {
+                        method: 'POST',
+                        body: arrayBuffer,
+                        headers: {
+                            'X-Filename': file.name
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            consoleOutput.textContent = `File uploaded: ${data.filename}`;
+                            // Refresh the samples list
+                            loadSamplesBtn.click();
+                        })
+                        .catch(error => {
+                            console.error('Error uploading file:', error);
+                            consoleOutput.textContent = `Error uploading file: ${error.message}`;
+                        });
+                };
+                reader.readAsArrayBuffer(file);
+            });
+
+            // Load example
+            loadExampleBtn.addEventListener('click', () => {
+                const example = examplesDropdown.value;
+
+                if (!example) {
+                    return;
+                }
+
+                let code = '';
+
+                switch (example) {
+                    case 'simple-sine':
+                        code = `// Simple sine wave oscillator
+SinOsc s => dac;
+0.5 => s.gain;
+220 => s.freq;
+2::second => now;`;
+                        break;
+
+                    case 'fm-synthesis':
+                        code = `// FM synthesis example
+SinOsc modulator => SinOsc carrier => dac;
+// Carrier settings
+0.5 => carrier.gain;
+440 => carrier.freq;
+// Modulator settings
+300 => modulator.freq;
+1000 => modulator.gain;
+// Let it play
+5::second => now;`;
+                        break;
+
+                    case 'file-playback':
+                        code = `// File playback example
+// Replace "sample.wav" with an actual file name from your samples
+SndBuf buf => dac;
+"sample.wav" => buf.read;
+0.5 => buf.gain;
+buf.length() => now;`;
+                        break;
+
+                    case 'audio-effects':
+                        code = `// Audio effects chain example
+SinOsc s => JCRev reverb => Echo echo => dac;
+// Source settings
+0.5 => s.gain;
+220 => s.freq;
+// Reverb settings
+0.1 => reverb.mix;
+// Echo settings
+500::ms => echo.delay;
+0.5 => echo.mix;
+0.7 => echo.gain;
+// Let it run
+5::second => now;`;
+                        break;
+
+                    case 'stereo-panning':
+                        code = `// Stereo panning example
+SinOsc s => Pan2 pan => dac;
+0.5 => s.gain;
+440 => s.freq;
+
+// Pan from left to right
+-1.0 => pan.pan;
+1::second => now;
+
+-0.5 => pan.pan;
+1::second => now;
+
+0.0 => pan.pan;
+1::second => now;
+
+0.5 => pan.pan;
+1::second => now;
+
+1.0 => pan.pan;
+1::second => now;`;
+                        break;
+
+                    case 'sequencer':
+                        code = `// Simple sequencer example
+SndBuf kick => dac;
+SndBuf snare => dac;
+SndBuf hihat => dac;
+
+// Load samples (replace with actual file names from your samples)
+"kick.wav" => kick.read;
+"snare.wav" => snare.read;
+"hihat.wav" => hihat.read;
+
+// Set gains
+0.5 => kick.gain;
+0.4 => snare.gain;
+0.3 => hihat.gain;
+
+// Make sure samples don't play automatically
+kick.samples() => kick.pos;
+snare.samples() => snare.pos;
+hihat.samples() => hihat.pos;
+
+// Tempo
+0.5::second => dur beat;
+
+// Simple pattern
+for (0 => int i; i < 8; i++) {
+    // Play kick on beats 0, 4
+    if (i == 0 || i == 4) {
+        0 => kick.pos;
+    }
+
+    // Play snare on beats 2, 6
+    if (i == 2 || i == 6) {
+        0 => snare.pos;
+    }
+
+    // Play hihat on all beats
+    0 => hihat.pos;
+
+    // Wait for next beat
+    beat => now;
+}`;
+                        break;
+                }
+
+                codeEditor.value = code;
+            });
+
+            // Recording functions
+            function startRecording() {
+                // Check if MediaRecorder API is available
+                if (!navigator.mediaDevices || !window.MediaRecorder) {
+                    console.log('MediaRecorder API not supported in this browser');
+                    return;
+                }
+
+                // Reset audio chunks
+                audioChunks = [];
+
+                // Get audio context
+                try {
+                    // Request audio stream from the output destination
+                    navigator.mediaDevices.getUserMedia({ audio: true })
+                        .then(stream => {
+                            audioRecorder = new MediaRecorder(stream);
+
+                            audioRecorder.ondataavailable = (e) => {
+                                if (e.data.size > 0) {
+                                    audioChunks.push(e.data);
+                                }
+                            };
+
+                            audioRecorder.onstop = () => {
+                                isRecording = false;
+                                // Stop the tracks to release microphone
+                                stream.getTracks().forEach(track => track.stop());
+                            };
+
+                            audioRecorder.start();
+                            isRecording = true;
+
+                            consoleOutput.textContent += '\nRecording started';
+                        })
+                        .catch(err => {
+                            console.error('Error starting recording:', err);
+                            consoleOutput.textContent += `\nError starting recording: ${err.message}`;
+                        });
+                } catch (error) {
+                    console.error('Error setting up recording:', error);
+                    consoleOutput.textContent += `\nError setting up recording: ${error.message}`;
+                }
+            }
+
+            function stopRecording() {
+                if (audioRecorder && isRecording) {
+                    audioRecorder.stop();
+                    consoleOutput.textContent += '\nRecording stopped';
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+<div class="container">
+    <h1>WebChucK with AI Integration</h1>
+
+    <div class="section">
+        <h2 class="section-title">Connection Status</h2>
+        <div class="status" id="connection-status">Not connected</div>
+        <button id="connect-btn">Connect to WebChucK</button>
+        <button id="connect-server-btn">Connect to Server</button>
+        <span id="session-id"></span>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">ChucK Code Editor</h2>
+        <textarea id="code-editor">// Default ChucK code
+SinOsc s => dac;
+0.5 => s.gain;
+220 => s.freq;
+2::second => now;</textarea>
+        <div style="margin-top: 10px;">
+            <button id="run-btn">Run Code</button>
+            <button id="stop-btn" class="stop">Stop</button>
+            <button id="save-btn">Save Audio</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">Sample Library</h2>
+        <div class="flex-row">
+            <div>
+                <button id="load-samples-btn">Load Available Samples</button>
+                <div class="files-list" id="samples-list"></div>
+            </div>
+            <div style="flex: 1;">
+                <h3>Upload New Sample</h3>
+                <input type="file" id="file-upload" accept=".wav,.aiff,.mp3">
+                <button id="upload-btn">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">Example ChucK Programs</h2>
+        <select id="examples-dropdown">
+            <option value="">Select an example...</option>
+            <option value="simple-sine">Simple Sine Wave</option>
+            <option value="fm-synthesis">FM Synthesis</option>
+            <option value="file-playback">File Playback</option>
+            <option value="audio-effects">Audio Effects Chain</option>
+            <option value="stereo-panning">Stereo Panning</option>
+            <option value="sequencer">Simple Sequencer</option>
+        </select>
+        <button id="load-example-btn">Load Example</button>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">Console Output</h2>
+        <pre id="console-output">Ready...</pre>
+    </div>
+</div>
+</body>
+</html>

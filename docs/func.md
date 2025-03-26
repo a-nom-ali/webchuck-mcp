@@ -1,0 +1,13 @@
+ChucK - [Language Specification : Functions]
+
+
+
+
+
+|  |  |
+| --- | --- |
+| **ChucK** : Language Specification > Functions  |  | | --- | | version: 1.5.x.x (numchucks) |  --- |
+| |  | | --- | | < (prev): [manipulating time](time.html) | (up): [language specification](./) | (next): [concurrency](spork.html) > | |
+| **Functions** Functions provide ways to break up code/common tasks into individual units. This helps to promote code re-usability and readability.  [View sample code](../examples/index.html#func) for functions  **writing** Declare functions with the keyword fun (or function) followed by the return type and then the name of the function. After the name of the function parentheses must be opened to declare the types of the input arguments.   ```      // define function call 'funk'     fun void funk( int arg )     {         // insert code here     }  ```   The above function returns no values (the return type is void). If the function is declared to return any other type of values, the function body must return a value of the appropriate type.   ```      // define function 'addOne'     fun int addOne(int x)     {         // result 	return x + 1;     }  ```  **calling** To call a function use the name of the function with appropriate arugments.   ```      // define 'hey'     fun int hey( int a, int b )     {         // do something 	return a + b;     }      // call the function; store result     hey( 1, 2 ) => int result;  ```   You can also use the ChucK operator to call functions!   ```      // call hey     ( 1, 2 ) => hey => int result;      // same     hey( 1, 2 ) => int result;      // several in a row     ( 10, 100 ) => Std.rand2 => Std.mtof => float foo;      // same     Std.mtof( Std.rand2( 10, 100 ) ) => float foo;  ```  **overloading** Overloading a function allows functions with the same name to be defined with different arguments. The function must be written in separate instances to handle the input, and the return type must agree.   ```      // funk( int )     fun int add(int x)     { 	return x + x;     }      // funk( int, int )     fun int add(int x, int y)     { 	return x + y;     }      // compiler automatically choose the right one to call     add( 1 ) => int foo;     add( 1, 2 ) => int bar;  ``` |
+| |  | | --- | | < (prev): [manipulating time](time.html) | (up): [language specification](./) | (next): [concurrency](spork.html) > | |
+| ---  [chuck](../../) | [soundlab](http://soundlab.cs.princeton.edu/) | [cs](http://www.cs.princeton.edu/) | [music](http://www.music.princeton.edu/) | [ccrma](http://ccrma.stanford.edu/) |

@@ -1,0 +1,39 @@
+// Advanced audio processing example
+// Load audio file
+SndBuf sample => PitShift pitch => LPF filter => Echo echo => NRev rev => Gain master => dac;
+
+// Load sample
+"vocals.wav" => sample.read;
+
+// Set initial parameters
+0.7 => master.gain;
+1.0 => pitch.shift;
+1000 => filter.freq;
+0.5 => filter.Q;
+0.15 => rev.mix;
+
+// Echo settings
+250::ms => echo.delay;
+0.3 => echo.mix;
+0.7 => echo.gain;
+
+// Stop the sample from playing immediately
+sample.samples() => sample.pos;
+
+// Start playback
+0 => sample.pos;
+
+// Automate parameters over time
+for (0 => int i; i < 100; i++) {
+    // Create interesting pitch modulation
+    1.0 + Math.sin(i * 0.05) * 0.2 => pitch.shift;
+
+    // Modulate filter cutoff
+    1000 + Math.sin(i * 0.1) * 800 => filter.freq;
+
+    // Wait a bit
+    50::ms => now;
+}
+
+// Let reverb tail fade
+1::second => now;

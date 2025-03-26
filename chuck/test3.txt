@@ -1,0 +1,106 @@
+// AI-driven drum pattern generator
+SndBuf kick => Gain master => dac;
+SndBuf snare => master;
+SndBuf hihat => master;
+SndBuf clap => master;
+
+// Load samples
+me.dir() + "audio_files/kick.wav" => kick.read;
+me.dir() + "audio_files/snare.wav" => snare.read;
+me.dir() + "audio_files/hihat.wav" => hihat.read;
+me.dir() + "audio_files/clap.wav" => clap.read;
+
+// Set gains
+0.8 => master.gain;
+0.7 => kick.gain;
+0.5 => snare.gain;
+0.4 => hihat.gain;
+0.4 => clap.gain;
+
+// Initialize positions to end of samples (so they don't play automatically)
+kick.samples() => kick.pos;
+snare.samples() => snare.pos;
+hihat.samples() => hihat.pos;
+clap.samples() => clap.pos;
+
+// Pattern generation using cellular automata
+[0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] @=> int kickPattern[];
+[0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] @=> int snarePattern[];
+[1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0] @=> int hihatPattern[];
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0] @=> int clapPattern[];
+
+// Create arrays to store evolved patterns
+int kickEvolved[4][16];
+int snareEvolved[4][16];
+int hihatEvolved[4][16];
+int clapEvolved[4][16];
+
+// Copy initial patterns to evolved arrays
+for (0 => int i; i < 16; i++) {
+    kickPattern[i] => kickEvolved[0][i];
+    snarePattern[i] => snareEvolved[0][i];
+    hihatPattern[i] => hihatEvolved[0][i];
+    clapPattern[i] => clapEvolved[0][i];
+}
+
+// Function to evolve a pattern using a rule
+fun void evolvePattern(int current[], int next[], int rule) {
+    for (0 => int i; i < current.size(); i++) {
+        // Get left, center, right cells
+        (i-1+current.size()) % current.size() => int left;
+        i => int center;
+        (i+1) % current.size() => int right;
+
+        // Apply cellular automaton rule
+        (current[left] << 2) | (current[center] << 1) | current[right] => int state;
+        (rule >> state) & 1 => next[i];
+    }
+}
+
+// Evolve patterns for future measures
+for (1 => int m; m < 4; m++) {
+    evolvePattern(kickEvolved[m-1], kickEvolved[m], 110); // Rule 110 for kick
+    evolvePattern(snareEvolved[m-1], snareEvolved[m], 30); // Rule 30 for snare
+    evolvePattern(hihatEvolved[m-1], hihatEvolved[m], 90); // Rule 90 for hihat
+    evolvePattern(clapEvolved[m-1], clapEvolved[m], 184); // Rule 184 for clap
+}
+
+// Tempo
+0.125::second => dur beat;
+
+// Play for multiple measures with evolving patterns
+for (0 => int measure; measure < 4; measure++) {
+    <<< "Playing measure", measure + 1 >>>;
+
+    // Play one measure
+    for (0 => int i; i < 16; i++) {
+        // Play drums based on evolved patterns
+        if (kickEvolved[measure][i]) 0 => kick.pos;
+        if (snareEvolved[measure][i]) 0 => snare.pos;
+        if (hihatEvolved[measure][i]) 0 => hihat.pos;
+        if (clapEvolved[measure][i]) 0 => clap.pos;
+
+        // Advance time
+        beat => now;
+    }
+}
+
+// Final fill
+for (0 => int i; i < 4; i++) {
+    0 => kick.pos;
+    beat/2 => now;
+    0 => snare.pos;
+    beat/2 => now;
+}
+
+// Final crash
+0 => kick.pos;
+0 => clap.pos;
+1.0 => master.gain;
+1::second => now;
+
+// Fade out
+for (0.9 => float g; g >= 0.0; g - 0.1 => g) {
+    g => master.gain;
+    50::ms => now;
+}
