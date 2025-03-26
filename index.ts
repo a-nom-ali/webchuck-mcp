@@ -854,8 +854,6 @@ To execute this code, use the executeChucK tool.`
     }
 );
 
-app.use(express.static(path.join(__dirname, 'public')));
-
 // Start the HTTP server
 const PORT = process.env.PORT || 3030;
 server.listen(PORT, () => {
@@ -863,6 +861,10 @@ server.listen(PORT, () => {
     console.log(`WebSocket server available at ws://localhost:${PORT}`);
     console.log(`Audio files directory: ${AUDIO_DIR}`);
 });
+
+
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 // Handle shutdown
 process.on('SIGINT', async () => {
