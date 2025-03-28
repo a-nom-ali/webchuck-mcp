@@ -2,7 +2,7 @@
   "name": "webchuck-mcp",
   "version": "1.0.0",
   "description": "MCP Server for WebChucK integration",
-  "main": "index.js",
+  "main": "index.ts",
   "type": "module",
   "scripts": {
     "start": "npx tsx index.ts",

@@ -11,6 +11,7 @@
             padding: 20px;
             background-color: #f5f5f5;
         }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -19,23 +20,27 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
+
         h1 {
             color: #333;
             text-align: center;
             margin-bottom: 30px;
         }
+
         .section {
             margin-bottom: 30px;
             padding: 20px;
             border: 1px solid #ddd;
             border-radius: 5px;
         }
+
         .section-title {
             margin-top: 0;
             color: #444;
             border-bottom: 1px solid #eee;
             padding-bottom: 10px;
         }
+
         button {
             background-color: #4CAF50;
             color: white;
@@ -46,15 +51,19 @@
             margin-right: 10px;
             transition: background-color 0.3s;
         }
+
         button:hover {
             background-color: #45a049;
         }
+
         button.stop {
             background-color: #f44336;
         }
+
         button.stop:hover {
             background-color: #d32f2f;
         }
+
         pre {
             background-color: #f8f8f8;
             padding: 15px;
@@ -62,6 +71,7 @@
             overflow-x: auto;
             font-family: monospace;
         }
+
         textarea {
             width: 100%;
             height: 200px;
@@ -71,12 +81,14 @@
             font-family: monospace;
             resize: vertical;
         }
+
         .status {
             padding: 10px;
             border-radius: 5px;
             background-color: #e8f5e9;
             margin-bottom: 15px;
         }
+
         .files-list {
             max-height: 200px;
             overflow-y: auto;
@@ -84,14 +96,17 @@
             padding: 10px;
             margin-top: 10px;
         }
+
         .file-item {
             padding: 5px;
             cursor: pointer;
             border-bottom: 1px solid #eee;
         }
+
         .file-item:hover {
             background-color: #f0f0f0;
         }
+
         .flex-row {
             display: flex;
             gap: 10px;
@@ -99,7 +114,7 @@
     </style>
     <script type="module" defer>
         // Import the webchuck bundle
-        import { Chuck } from './webchuck/wc-bundle.js';
+        import {Chuck} from './webchuck/wc-bundle.js';
 
         // Global variables
         let theChuck; // WebChucK instance
@@ -108,18 +123,116 @@
         let isRecording = false;
         let audioRecorder = null;
         let audioChunks = [];
+        let preloaded_instruments = [];
 
         // Server URL - update with your actual server URL
         const SERVER_URL = 'http://localhost:3030';
         const WS_URL = 'ws://localhost:3030';
 
-        function setLogCallback(msg) {
-            consoleOutput.textContent += '\n' + msg;
-            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        // Add this function to your client code to sanitize incoming WebSocket messages
+        function parseExecuteCodeMessage(data) {
+            if (data.type !== 'execute_code') {
+                return data;
+            }
+
+            // If data.code is a string, use it directly
+            if (typeof data.code === 'string') {
+                // Check if it might be JSON that needs parsing
+                if (data.code.trim().startsWith('{') && data.code.includes('`code`')) {
+                    try {
+                        // Try to extract the actual code from the malformed JSON
+                        const parsedCode = JSON.parse(data.code);
+                        if (parsedCode.code) {
+                            console.log("Parsed nested code from JSON");
+                            return {
+                                type: 'execute_code',
+                                code: parsedCode.code
+                            };
+                        }
+                    } catch (e) {
+                        console.log("Failed to parse as JSON, using as-is");
+                    }
+                }
+            }
+
+            return data;
         }
 
+        // Add this function for programmatic preloading
+        async function preloadInstrument(instrumentName, notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B']) {
+            // Default to octave 4 if not specified
+            const octaves = [4];
+
+            // Generate the list of files to preload
+            const filesToPreload = [];
+
+            for (const octave of octaves) {
+                for (const note of notes) {
+                    filesToPreload.push(`${instrumentName}/${note}${octave}.wav`);
+                }
+            }
+
+            return await preloadChuckFiles(filesToPreload);
+        }
+
+        // Save original console methods
+        const originalChuckPrint = Chuck.prototype.chuckPrint;
+        // const originalConsoleError = console.error;
+        // const originalConsoleWarn = console.warn;
+
+        // Storage for captured messages
+        let capturedMessages = [];
+
+        // Override console methods
+        Chuck.prototype.chuckPrint = function () {
+            // Capture the message
+            const message = Array.from(arguments).join(' ');
+            capturedMessages.push({type: 'log', message});
+
+            // Call the original method
+            originalChuckPrint.apply(Chuck, arguments);
+        };
+
+        // console.error = function () {
+        //     // Capture the message
+        //     const message = Array.from(arguments).join(' ');
+        //     capturedMessages.push({type: 'error', message});
+        //
+        //     // Call the original method
+        //     originalConsoleError.apply(console, arguments);
+        // };
+        //
+        // console.warn = function () {
+        //     // Capture the message
+        //     const message = Array.from(arguments).join(' ');
+        //     capturedMessages.push({type: 'warning', message});
+        //
+        //     // Call the original method
+        //     originalConsoleWarn.apply(console, arguments);
+        // };
+
+        // Function to send captured messages back to the server
+        function sendCapturedMessages() {
+            if (serverSocket && serverSocket.readyState === WebSocket.OPEN && capturedMessages.length > 0) {
+                serverSocket.send(JSON.stringify({
+                    type: 'console_messages',
+                    messages: capturedMessages
+                }));
+
+                // Clear the messages after sending
+                capturedMessages = [];
+            }
+        }
+
+        function clearCapturedMessages() {
+            capturedMessages = [];
+        }
+
+        // Periodically send captured messages or send on certain events
+        // setInterval(sendCapturedMessages, 5000);
+
         // Wait for DOM content to be loaded
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // DOM Elements
             const connectBtn = document.getElementById('connect-btn');
             const connectServerBtn = document.getElementById('connect-server-btn');
@@ -136,47 +249,251 @@
             const uploadBtn = document.getElementById('upload-btn');
             const examplesDropdown = document.getElementById('examples-dropdown');
             const loadExampleBtn = document.getElementById('load-example-btn');
+// Add this to your DOMContentLoaded event handler
+            const preloadInstrumentsBtn = document.getElementById('preload-instruments-btn');
+            const instrumentFamilySelect = document.getElementById('instrument-family');
+            const preloadStatus = document.getElementById('preload-status');
 
-            // Initialize WebChucK
-            connectBtn.addEventListener('click', async () => {
+            function setLogCallback(msg) {
+                consoleOutput.textContent += '\n' + msg;
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+
+            // Add this function to preload specific files on demand
+            async function preloadChuckFiles(fileList) {
+                if (!theChuck) {
+                    consoleOutput.textContent = 'Please connect to WebChucK first';
+                    return false;
+                }
+
                 try {
-                    consoleOutput.textContent = 'Initializing WebChucK...';
-                    connectionStatus.textContent = 'Connecting...';
+                    consoleOutput.textContent = `Preloading ${fileList.length} files...`;
 
-                    // Initialize WebChucK
-                    while (theChuck === undefined) {
-                        theChuck = await Chuck.init([
-                                {
-                                    serverFilename: "./audio_files/kick.wav",
-                                    virtualFilename: "kick.wav"
-                                },
-                                {
-                                    serverFilename: "./audio_files/hihat.wav",
-                                    virtualFilename: "hihat.wav"
-                                },
-                                {
-                                    serverFilename: "./audio_files/snare.wav",
-                                    virtualFilename: "snare.wav"
-                                },
-                                {
-                                    serverFilename: "./audio_files/clap.wav",
-                                    virtualFilename: "clap.wav"
-                                },
-                                {
-                                    serverFilename: "./audio_files/snare.wav",
-                                    virtualFilename: "vocals.wav"
-                                },
-                            ]
-                            , undefined, undefined, './webchuck/');
+                    // Format the files for WebChucK
+                    const formattedFiles = fileList.map(file => ({
+                        serverFilename:'./' + file.replaceAll("\\", "/"),
+                        virtualFilename: file.replaceAll('\\', "_") // Extract just the filename
+                    }));
+
+                    // Use theChuck.preloadFiles if available
+                    if (typeof theChuck.preloadFiles === 'function') {
+                        await theChuck.preloadFiles(formattedFiles);
+                        consoleOutput.textContent += '\nFiles preloaded successfully!';
+                        return true;
+                    } else {
+                        // Fallback if preloadFiles isn't available
+                        console.warn("theChuck.preloadFiles is not available - this may be an older version of WebChucK");
+                        consoleOutput.textContent += '\nWarning: preloadFiles method not available, using workaround...';
+
+                        // Manual preloading approach - this is a placeholder implementation
+                        // Add your own implementation based on WebChucK capabilities
+                        for (const file of formattedFiles) {
+                            console.log(`Hard preload: ${file.virtualFilename}`);
+                        }
+
+                        theChuck = await Chuck.init(
+                            formattedFiles,
+                            undefined,
+                            2,
+                            './webchuck/'
+                        );
+
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Error preloading files:', error);
+                    consoleOutput.textContent += `\nError preloading files: ${error.message}`;
+                    return false;
+                }
+            }
+
+            // Function to preload instruments based on a list of instrument names
+            async function preloadInstrumentsFromList(instrumentList) {
+                if (!theChuck) {
+                    console.error('WebChucK not initialized');
+                    return false;
+                }
+
+                try {
+                    // Get all available audio files from the server
+                    const response = await fetch(`${SERVER_URL}/api/audio`);
+                    const data = await response.json();
+                    const allFiles = data.files;
+
+                    // Filter files based on the instrument list
+                    const filesToPreload = allFiles.filter(file => {
+                        // Check if the file path starts with any of the requested instruments
+                        return instrumentList.some(instrument =>
+                            file.replaceAll("\\", "/").startsWith(instrument + '/') ||
+                            file.replaceAll("\\", "/").includes('/' + instrument + '/')
+                        );
+                    });
+
+                    if (filesToPreload.length === 0) {
+                        console.warn(`No matching files found for the requested instruments:\n${data}`);
+                        throw new Error(`No matching files found for the requested instruments:\\n${data}`);
+                        // return false;
                     }
 
+                    console.log(`Preloading ${filesToPreload.length} files for instruments: ${instrumentList.join(', ')}`);
+                    consoleOutput.textContent += `\nPreloading ${filesToPreload.length} files...`;
+
+                    // Format files for WebChucK preloading - limit to a reasonable number to avoid overloading
+                    const formattedFiles = filesToPreload.slice(0, 100).map(file => ({
+                        serverFilename:'./' + file.replaceAll("\\", "/"),
+                        virtualFilename: file.replaceAll('\\', "_") // Extract just the filename
+                    }));
+
+                    // Initialize WebChucK with additional files if needed
+                    // Since we don't have direct access to preloadFiles, we'll reinitialize with additional files
+                    if (theChuck) {
+                        // Reinitialize with new files
+                        theChuck = await Chuck.init(
+                            formattedFiles,
+                            undefined,
+                            2,
+                            './webchuck/'
+                        );
+                        preloaded_instruments = formattedFiles;
+                        consoleOutput.textContent += '\nInstruments preloaded successfully!';
+                        return true;
+                    } else {
+                        console.warn("theChuck is not initialized");
+                        throw new Error('theChuck is not initialized');
+                        // return false;
+                    }
+                } catch (error) {
+                    console.error('Error preloading instruments:', error);
+                    consoleOutput.textContent += `\nError preloading instruments: ${error.message}`;
+                    throw new Error(`Error preloading instruments: ${error.message}`);
+                    // return false;
+                }
+            }
+
+            preloadInstrumentsBtn.addEventListener('click', async () => {
+                const selectedInstruments = Array.from(instrumentFamilySelect.selectedOptions).map(option => option.value);
+
+                if (selectedInstruments.length === 0) {
+                    preloadStatus.textContent = 'Please select at least one instrument family';
+                    return;
+                }
+
+                preloadStatus.textContent = `Preparing to load ${selectedInstruments.length} instrument families...`;
+
+                try {
+                    // First get all available audio files
+                    const response = await fetch('http://localhost:3030/api/audio');
+                    const data = await response.json();
+                    const allFiles = data.files;
+
+                    // Filter for the selected instrument families
+                    const filesToPreload = allFiles.filter(file => {
+                        return selectedInstruments.some(instrument =>
+                            file.replaceAll("\\", "/").startsWith(instrument + '/') ||
+                            file.replaceAll("\\", "/").includes('/' + instrument + '/'));
+                    });
+
+                    if (filesToPreload.length === 0) {
+                        preloadStatus.textContent = 'No matching files found for the selected instruments';
+                        return;
+                    }
+
+                    preloadStatus.textContent = `Preloading ${filesToPreload.length} files for selected instruments...`;
+
+                    // Preload the filtered files
+                    const success = await preloadChuckFiles(filesToPreload);
+
+                    if (success) {
+                        preloadStatus.textContent = `Successfully preloaded ${filesToPreload.length} files!`;
+                    } else {
+                        preloadStatus.textContent = `Preloading may not have completed properly. Check console for details.`;
+                    }
+                } catch (error) {
+                    console.error('Error in preloading process:', error);
+                    preloadStatus.textContent = `Error: ${error.message}`;
+                }
+            });
+
+            connectBtn.addEventListener('click', async () => {
+                try {
+                    consoleOutput.textContent = 'Fetching available audio files...';
+                    connectionStatus.textContent = 'Preparing connection...';
+
+                    // Fetch the audio files from the API
+                    let audioFiles = [];
+                    try {
+                        const response = await fetch('http://localhost:3030/api/audio');
+                        if (!response.ok) {
+                            throw new Error(`Server responded with status: ${response.status}`);
+                        }
+                        const data = await response.json();
+                        console.log(data);
+                        audioFiles = data.files.map(file => ({
+                            serverFilename: `${file}`,
+                            virtualFilename: file
+                        }));
+
+                        consoleOutput.textContent = `Found ${audioFiles.length} audio files`;
+                    } catch (fetchError) {
+                        console.error('Error fetching audio files:', fetchError);
+                        consoleOutput.textContent += `\nWarning: Could not fetch audio files: ${fetchError.message}`;
+                        // Fall back to default files if API call fails
+                        audioFiles = [
+                            {
+                                serverFilename: "./audio_files/kick.wav",
+                                virtualFilename: "kick.wav"
+                            },
+                            {
+                                serverFilename: "./audio_files/hihat.wav",
+                                virtualFilename: "hihat.wav"
+                            },
+                            {
+                                serverFilename: "./audio_files/snare.wav",
+                                virtualFilename: "snare.wav"
+                            },
+                            {
+                                serverFilename: "./audio_files/clap.wav",
+                                virtualFilename: "clap.wav"
+                            },
+                            {
+                                serverFilename: "./audio_files/snare.wav",
+                                virtualFilename: "vocals.wav"
+                            }
+                        ];
+                    }
+
+                    // Display the available audio files in the console output
+                    consoleOutput.textContent = 'Initializing WebChucK with files:\n' +
+                        audioFiles.map(file => file.virtualFilename).join('\n');
+                    connectionStatus.textContent = 'Connecting...';
+
+                    // Initialize WebChucK with the fetched audio files
+                    while (theChuck === undefined) {
+                        theChuck = await Chuck.init(
+                            audioFiles.slice(0, 10),
+                            undefined,
+                            undefined,
+                            './webchuck/'
+                        );
+                    }
+
+                    // After initializing WebChucK
                     connectionStatus.textContent = 'Connected to WebChucK';
-                    consoleOutput.textContent = 'WebChucK initialized successfully!';
+                    consoleOutput.textContent = 'WebChucK initialized successfully!\n\nAvailable audio files:\n' +
+                        audioFiles.map(file => file.virtualFilename).join('\n');
+
+                    // Add this line to ensure audio is ready
+                    //initializeAudioContext();
 
                     // Enable buttons
                     runBtn.disabled = false;
                     stopBtn.disabled = false;
                     saveBtn.disabled = false;
+
+                    // Optionally populate a selection dropdown if you have one
+                    if (typeof populateAudioFileSelect === 'function') {
+                        populateAudioFileSelect(audioFiles);
+                    }
 
                 } catch (error) {
                     console.error('Error initializing WebChucK:', error);
@@ -185,6 +502,31 @@
                 }
             });
 
+// Optional function to populate a select dropdown with audio files
+// Uncomment and implement if you need this functionality
+            /*
+            function populateAudioFileSelect(audioFiles) {
+                const selectElement = document.getElementById('audioFileSelect');
+                if (!selectElement) return;
+
+                // Clear existing options
+                selectElement.innerHTML = '';
+
+                // Add a default option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = '-- Select an audio file --';
+                selectElement.appendChild(defaultOption);
+
+                // Add an option for each audio file
+                audioFiles.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = file.virtualFilename;
+                    option.textContent = file.virtualFilename;
+                    selectElement.appendChild(option);
+                });
+            }
+            */
             // Connect to WebSocket server
             connectServerBtn.addEventListener('click', () => {
                 if (serverSocket && serverSocket.readyState === WebSocket.OPEN) {
@@ -202,9 +544,18 @@
                     consoleOutput.textContent += '\nConnected to server';
                 };
 
+// Find this section in your client code that handles WebSocket messages
                 serverSocket.onmessage = (event) => {
                     try {
-                        const data = JSON.parse(event.data);
+                        let data = JSON.parse(event.data);
+
+                        // Add debug logging
+                        console.log("WebSocket message received (raw):", data);
+
+                        // Apply sanitization for execute_code messages
+                        data = parseExecuteCodeMessage(data);
+
+                        console.log("WebSocket message after processing:", data);
 
                         switch (data.type) {
                             case 'session_created':
@@ -214,18 +565,82 @@
                                 break;
 
                             case 'execute_code':
-                                // Execute ChucK code received from server
+                                // Execute ChucK code received from server - MODIFIED SECTION
                                 if (theChuck) {
-                                    theChuck.runCode(data.code);
                                     consoleOutput.textContent += `\nExecuting code from server`;
+                                    const codeToExecute = typeof data.code === 'string' ? data.code : JSON.stringify(data.code);
+                                    console.log("About to execute code:", codeToExecute);
+
+                                    // Wrap in try/catch and handle async properly
+                                    try {
+                                        // Execute synchronously instead of returning a promise
+                                        clearCapturedMessages()
+                                        theChuck.runCode(codeToExecute)
+                                            .then(success => {
+                                                console.log(`Code execution completed with ${success}`);
+                                                console.log(capturedMessages);
+                                                // Force audio context to resume if it's suspended
+                                                if (theChuck.audioContext && theChuck.audioContext.state !== 'running') {
+                                                    theChuck.audioContext.resume().then(() => {
+                                                        console.log("Audio context resumed");
+                                                    }).catch(err => {
+                                                        console.error("Error resuming audio context:", err);
+                                                    });
+                                                }
+                                            })
+                                            .catch(err => {
+                                                console.error("Error executing ChucK code:", err);
+                                                const capturedMessagesText = capturedMessages.map(message => message.message).join('\n');
+                                                consoleOutput.textContent += `\nError: ${err}\n${capturedMessagesText}`;
+                                                if (serverSocket && serverSocket.readyState === WebSocket.OPEN) {
+                                                    serverSocket.send(JSON.stringify({
+                                                        type: 'execute_code_error',
+                                                        sessionId: sessionId,
+                                                        success: false,
+                                                        error: `\nError: ${err}\n${capturedMessagesText}`
+                                                    }));
+                                                }
+                                            });
+
+                                    } catch (err) {
+                                        console.error("Error executing ChucK code:", err);
+                                        const capturedMessagesText = capturedMessages.map(message => message.message).join('\n');
+                                        consoleOutput.textContent += `\nError: ${err.message}\n${capturedMessagesText}`;
+                                        if (serverSocket && serverSocket.readyState === WebSocket.OPEN) {
+                                            serverSocket.send(JSON.stringify({
+                                                type: 'execute_code_error',
+                                                sessionId: sessionId,
+                                                success: false,
+                                                error: `\nError: ${err.message}\n${capturedMessagesText}`
+                                            }));
+                                        }
+                                    }
+                                } else {
+                                    console.error("theChuck is not initialized");
+                                    const capturedMessagesText = capturedMessages.map(message => message.message).join('\n');
+                                    consoleOutput.textContent += `\nError: WebChucK not initialized\n${capturedMessagesText}`;
+                                    if (serverSocket && serverSocket.readyState === WebSocket.OPEN) {
+                                        serverSocket.send(JSON.stringify({
+                                            type: 'execute_code_error',
+                                            sessionId: sessionId,
+                                            success: false,
+                                            error: `\nError: WebChucK not initialized\n${capturedMessagesText}`
+                                        }));
+                                    }
                                 }
                                 break;
 
                             case 'stop_execution':
-                                // Stop ChucK execution
+                                // Stop ChucK execution - MODIFIED SECTION
                                 if (theChuck) {
-                                    theChuck.clearChuckInstance();
-                                    consoleOutput.textContent += `\nStopped code execution from server`;
+                                    try {
+                                        theChuck.clearChuckInstance();
+                                        console.log("Execution stopped");
+                                        consoleOutput.textContent += `\nStopped code execution from server`;
+                                    } catch (err) {
+                                        console.error("Error stopping execution:", err);
+                                        consoleOutput.textContent += `\nError stopping: ${err.message}`;
+                                    }
                                 }
                                 break;
 
@@ -233,11 +648,44 @@
                                 consoleOutput.textContent += `\nAudio saved: ${data.filename}`;
                                 break;
 
+                            case 'preload_instruments':
+                                // This message would come from the AI before sending actual code
+                                if (data.instruments && Array.isArray(data.instruments)) {
+                                    consoleOutput.textContent += `\nReceived preload request for instruments: ${data.instruments.join(', ')}`;
+
+                                    // Call preload function and then notify when ready
+                                    preloadInstrumentsFromList(data.instruments)
+                                        .then(success => {
+                                            // Send back acknowledgment when preloading is complete
+                                            if (serverSocket && serverSocket.readyState === WebSocket.OPEN) {
+                                                const preloaded_instruments_string = JSON.stringify(preloaded_instruments)
+                                                serverSocket.send(JSON.stringify({
+                                                    type: 'preload_complete',
+                                                    sessionId: sessionId,
+                                                    success: success,
+                                                    message: `Preloading successfully completed.\n${preloaded_instruments_string} instruments.`
+                                                }));
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Error in preloading process:', error);
+                                            // Send error notification
+                                            if (serverSocket && serverSocket.readyState === WebSocket.OPEN) {
+                                                serverSocket.send(JSON.stringify({
+                                                    type: 'preload_error',
+                                                    sessionId: sessionId,
+                                                    error: error.message
+                                                }));
+                                            }
+                                        });
+                                }
+                                break;
                             default:
                                 consoleOutput.textContent += `\nReceived: ${JSON.stringify(data)}`;
                         }
                     } catch (error) {
                         console.error('Error parsing WebSocket message:', error);
+                        consoleOutput.textContent += `\nError: ${error.message}`;
                     }
                 };
 
@@ -264,12 +712,52 @@
 
                 const code = codeEditor.value;
 
+                // Check if code contains references to instruments that might need preloading
+                const potentialInstruments = ['accordion', 'acoustic_bass', 'acoustic_grand_piano', 'flute', 'violin'];
+                const instrumentsToPreload = [];
+
+                for (const instrument of potentialInstruments) {
+                    if (code.includes(instrument)) {
+                        instrumentsToPreload.push(instrument);
+                    }
+                }
+
+                // Preload instruments if needed
+                if (instrumentsToPreload.length > 0) {
+                    consoleOutput.textContent = `Detecting instruments in code: ${instrumentsToPreload.join(', ')}`;
+                    consoleOutput.textContent += '\nPreloading required instruments...';
+
+                    try {
+                        // Get all files for the detected instruments
+                        const response = await fetch('http://localhost:3030/api/audio');
+                        const data = await response.json();
+                        const filesToPreload = data.files.filter(file =>
+                            instrumentsToPreload.some(instrument => file.replaceAll("\\", "/").startsWith(instrument + '/') ||
+                                file.replaceAll("\\", "/").includes('/' + instrument + '/'))
+                        );
+
+                        if (filesToPreload.length > 0) {
+                            await preloadChuckFiles(filesToPreload);
+                        }
+                    } catch (error) {
+                        console.warn('Error preloading instruments:', error);
+                        consoleOutput.textContent += `\nWarning: Could not preload instruments: ${error.message}`;
+                    }
+                }
+
                 try {
+                    // Make sure audio context is active
+                    if (theChuck.audioContext && theChuck.audioContext.state !== 'running') {
+                        await theChuck.audioContext.resume();
+                        console.log("Audio context resumed");
+                    }
+
                     // Clear previous code
                     theChuck.clearChuckInstance();
 
                     // Run new code
                     theChuck.runCode(code);
+                    console.log("Code execution initiated via UI");
 
                     consoleOutput.textContent = 'Code running...';
 
@@ -303,6 +791,27 @@
                     consoleOutput.textContent = `Error: ${error.message}`;
                 }
             });
+
+// Add this helper function somewhere accessible
+            function initializeAudioContext() {
+                // This function helps ensure the audio context is active
+                // Call it when connecting to WebChucK
+                if (theChuck) {
+                    if (theChuck.audioContext.state !== 'running') {
+                        console.log("Attempting to resume audio context...");
+                        theChuck.audioContext.resume().then(() => {
+                            console.log("Audio context successfully resumed");
+                        }).catch(err => {
+                            console.error("Failed to resume audio context:", err);
+                        });
+                    } else {
+                        console.log("Audio context is already running");
+                    }
+                } else {
+                    console.log("Audio context not available yet");
+                }
+            }
+
 
             // Stop ChucK code
             stopBtn.addEventListener('click', async () => {
@@ -355,7 +864,7 @@
                     return;
                 }
 
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const audioBlob = new Blob(audioChunks, {type: 'audio/wav'});
                 const url = URL.createObjectURL(audioBlob);
 
                 // Create download link
@@ -616,7 +1125,7 @@ for (0 => int i; i < 8; i++) {
                 // Get audio context
                 try {
                     // Request audio stream from the output destination
-                    navigator.mediaDevices.getUserMedia({ audio: true })
+                    navigator.mediaDevices.getUserMedia({audio: true})
                         .then(stream => {
                             audioRecorder = new MediaRecorder(stream);
 
@@ -680,6 +1189,27 @@ SinOsc s => dac;
             <button id="stop-btn" class="stop">Stop</button>
             <button id="save-btn">Save Audio</button>
         </div>
+    </div>
+
+    <!-- Add this to your HTML inside the appropriate section -->
+    <div class="section">
+        <h2 class="section-title">Instrument Preloader</h2>
+        <div class="instrument-selector">
+            <select id="instrument-family" multiple>
+                <option value="accordion">Accordion</option>
+                <option value="acoustic_bass">Acoustic Bass</option>
+                <option value="acoustic_grand_piano">Acoustic Grand Piano</option>
+                <option value="acoustic_guitar_nylon">Acoustic Guitar (Nylon)</option>
+                <option value="acoustic_guitar_steel">Acoustic Guitar (Steel)</option>
+                <option value="alto_sax">Alto Saxophone</option>
+                <option value="flute">Flute</option>
+                <option value="violin">Violin</option>
+                <!-- Add more instrument families based on your file structure -->
+            </select>
+            <div>Hold Ctrl/Cmd to select multiple</div>
+            <button id="preload-instruments-btn">Preload Selected Instruments</button>
+        </div>
+        <div id="preload-status"></div>
     </div>
 
     <div class="section">
