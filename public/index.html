@@ -220,7 +220,7 @@
                 }));
 
                 // Clear the messages after sending
-                capturedMessages = [];
+                clearCapturedMessages();
             }
         }
 
@@ -324,8 +324,7 @@
                     const filesToPreload = allFiles.filter(file => {
                         // Check if the file path starts with any of the requested instruments
                         return instrumentList.some(instrument =>
-                            file.replaceAll("\\", "/").startsWith(instrument + '/') ||
-                            file.replaceAll("\\", "/").includes('/' + instrument + '/')
+                            file.replaceAll("\\", "/").includes(instrument)
                         );
                     });
 
@@ -390,7 +389,7 @@
                     const filesToPreload = allFiles.filter(file => {
                         return selectedInstruments.some(instrument =>
                             file.replaceAll("\\", "/").startsWith(instrument + '/') ||
-                            file.replaceAll("\\", "/").includes('/' + instrument + '/'));
+                            file.replaceAll("\\", "/").includes(instrument));
                     });
 
                     if (filesToPreload.length === 0) {
@@ -574,7 +573,7 @@
                                     // Wrap in try/catch and handle async properly
                                     try {
                                         // Execute synchronously instead of returning a promise
-                                        clearCapturedMessages()
+                                        // clearCapturedMessages()
                                         theChuck.runCode(codeToExecute)
                                             .then(success => {
                                                 console.log(`Code execution completed with ${success}`);
@@ -628,6 +627,11 @@
                                         }));
                                     }
                                 }
+                                break;
+
+                            case 'clear_console_capture':
+                                clearCapturedMessages();
+                                consoleOutput.textContent += `\nConsole capture cleared`;
                                 break;
 
                             case 'stop_execution':
@@ -733,7 +737,7 @@
                         const data = await response.json();
                         const filesToPreload = data.files.filter(file =>
                             instrumentsToPreload.some(instrument => file.replaceAll("\\", "/").startsWith(instrument + '/') ||
-                                file.replaceAll("\\", "/").includes('/' + instrument + '/'))
+                                file.replaceAll("\\", "/").includes(instrument))
                         );
 
                         if (filesToPreload.length > 0) {

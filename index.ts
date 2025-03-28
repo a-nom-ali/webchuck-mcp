@@ -204,7 +204,7 @@ function handleExecuteCodeError(sessionId: string, data: any) {
         }
     })
 
-    execution_error_response = data.error;
+    execution_error_response += data.error;
 }
 
 // ==== WebChucK Execute Code Error Handler ====
@@ -292,7 +292,6 @@ app.post('/api/execute', async (req, res) => {
         session.activeCode = code;
         session.status = 'executing';
 
-        execution_error_response = "";
         // Send code to WebChucK client
         session.ws.send(JSON.stringify({
             type: 'execute_code',
@@ -453,9 +452,9 @@ app.post('/api/preload', async (req, res) => {
 
         const response = await fetch(`http://localhost:${PORT}/api/debug/preload`);
 
-
+        const data = await response.json();
         return res.status(200).json({
-            message: response.json().error,
+            message: data.error,
             sessionId: sessionId
         });
 
@@ -479,6 +478,7 @@ app.get('/api/debug/execution', (req, res) => {
     res.status(200).json({
         error: execution_error_response || "No errors detected. Seems fine."
     });
+    execution_error_response = "";
 });
 
 app.get('/api/debug/preload', (req, res) => {
@@ -1515,7 +1515,7 @@ Remember, the goal is to create a lush, immersive synthwave track that captures 
 );
 
 mcpServer.prompt("webchuck_assistant_guide",
-    "A prompt to guide the user."
+    "A prompt to guide the user.",
     () => ({
         messages: [{
             role: "user",
