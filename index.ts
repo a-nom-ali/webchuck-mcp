@@ -452,10 +452,10 @@ app.post('/api/preload', async (req, res) => {
         }));
 
         const response = await fetch(`http://localhost:${PORT}/api/debug/preload`);
-
+        const data = await response.json();
 
         return res.status(200).json({
-            message: response.json().error,
+            message: data.error,
             sessionId: sessionId
         });
 
@@ -1515,7 +1515,7 @@ Remember, the goal is to create a lush, immersive synthwave track that captures 
 );
 
 mcpServer.prompt("webchuck_assistant_guide",
-    "A prompt to guide the user."
+    "A prompt to guide the user.",
     () => ({
         messages: [{
             role: "user",
@@ -1545,7 +1545,7 @@ mcpServer.prompt("webchuck_assistant_guide",
     Remember that the assistant is a tool to enhance your creativity, not replace it. Use its suggestions as inspiration for your own ideas.`
             }
         }]
-    }))
+    }));
 
 // Start the HTTP server
 server.listen(PORT, async () => {
