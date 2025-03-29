@@ -1,6 +1,9 @@
 import { appendFileSync } from 'fs';
+import {fileURLToPath} from 'url';
 import path from "path";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const WORKING_DIRECTORY = process.env.WORKING_DIRECTORY || __dirname;
 
 export enum LogLevel {

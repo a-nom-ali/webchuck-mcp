@@ -1545,7 +1545,7 @@ mcpServer.prompt("webchuck_assistant_guide",
     Remember that the assistant is a tool to enhance your creativity, not replace it. Use its suggestions as inspiration for your own ideas.`
             }
         }]
-    }))
+    }));
 
 // Start the HTTP server
 server.listen(PORT, async () => {
