@@ -213,6 +213,6 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-public/audio_files/
+audio_files/
 /old/
 log.txt
