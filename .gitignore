@@ -214,3 +214,5 @@ dist
 .pnp.*
 
 public/audio_files/
+/old/
+log.txt
