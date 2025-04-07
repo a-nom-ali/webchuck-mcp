@@ -1,0 +1,16 @@
+/* src/components/Visualizer/LevelMeter.css */
+.level-meter-container {
+  width: 100%;
+  height: 100%;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.level-meter-canvas {
+  width: 100%;
+  height: 100%;
+}

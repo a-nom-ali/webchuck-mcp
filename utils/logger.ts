@@ -1,10 +1,5 @@
 import { appendFileSync } from 'fs';
-import {fileURLToPath} from 'url';
 import path from "path";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const WORKING_DIRECTORY = process.env.WORKING_DIRECTORY || __dirname;
 
 export enum LogLevel {
   DEBUG = 0,
@@ -22,10 +17,12 @@ const isLoggingFileEnabled = true; //process.env.LOGGING_FILE === 'true';
 export class Logger {
   private level: LogLevel;
   private prefix: string;
+  private workingDirectory: string;
 
-  constructor(prefix: string, level: LogLevel = LogLevel.INFO) {
+  constructor(prefix: string, level: LogLevel = LogLevel.INFO, workingDirectory:string = ".") {
     this.prefix = prefix;
     this.level = level;
+    this.workingDirectory = workingDirectory;
   }
 
   debug(message: string, data?: any) {
@@ -62,9 +59,9 @@ export class Logger {
     // Write to file if file logging is enabled
     if (this.isLoggingFileEnabled()) {
       try {
-          appendFileSync(path.join(WORKING_DIRECTORY, 'log.txt'), logMessage + '\n');
+          appendFileSync(path.join(this.workingDirectory, 'log.txt'), logMessage + '\n');
           if (data) {
-              appendFileSync(path.join(WORKING_DIRECTORY, 'log.txt'), JSON.stringify(data, null, 2) + '\n');
+              appendFileSync(path.join(this.workingDirectory, 'log.txt'), JSON.stringify(data, null, 2) + '\n');
           }
       } catch (error) {
           console.error('Failed to write to log file:', error);

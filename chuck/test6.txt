@@ -1,0 +1,33 @@
+// Parameter Control Example
+// Use the sliders to control these parameters in real-time!
+
+// @param float values between 0 and 1
+// @range 0.1 1.0
+0.5 => global float gain;
+
+// @param int values for frequency
+// @range 110 880
+440 => global int freq;
+
+// @param float values for modulation
+// @range 1 20
+5.0 => global float modAmount;
+
+// @param int values for duration
+// @range 100 2000
+500 => global int duration;
+
+SinOsc carrier => dac;
+SinOsc modulator => blackhole;
+
+// Set up initial parameters
+freq => carrier.freq;
+20 => modulator.freq;
+
+// Main loop
+while (true) {
+    gain => carrier.gain;
+    // Update parameters from user controls (handled automatically)
+    freq + (modulator.last() * modAmount * 100) => carrier.freq;
+    duration * 1::ms => now;
+}

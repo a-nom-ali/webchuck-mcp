@@ -1,0 +1,148 @@
+/* src/components/Layout/MainLayout.css */
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #333;
+}
+
+.app-title h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.main-content {
+  display: flex;
+  flex-grow: 1;
+  height: calc(100% - 110px);
+  overflow: hidden;
+}
+
+.editor-panel {
+  width: 60%;
+  height: 100%;
+  padding: 15px;
+  box-sizing: border-box;
+}
+
+.right-panel {
+  width: 40%;
+  height: 100%;
+  padding: 15px;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.visualizers-panel {
+  display: flex;
+  height: 50%;
+  margin-bottom: 15px;
+}
+
+.visualizer-box {
+  flex: 1;
+  margin-right: 15px;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.visualizer-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  background-color: #252525;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.visualizer-content {
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.console-panel {
+  height: 50%;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.console-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #252525;
+}
+
+.console-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.clear-console-button {
+  background: none;
+  border: 1px solid #666;
+  color: #ccc;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clear-console-button:hover {
+  background-color: #333;
+}
+
+.main-footer {
+  padding: 10px 20px;
+  background-color: #1a1a1a;
+  border-top: 1px solid #333;
+  font-size: 13px;
+  color: #999;
+}
+
+.footer-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dot-separator {
+  font-size: 10px;
+}
+
+.footer-info a {
+  color: #4dabf7;
+  text-decoration: none;
+}
+
+.footer-info a:hover {
+  text-decoration: underline;
+}

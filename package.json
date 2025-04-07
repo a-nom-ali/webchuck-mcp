@@ -1,39 +1,53 @@
 {
-  "name": "webchuck-mcp",
-  "version": "1.0.0",
-  "description": "MCP Server for WebChucK integration",
-  "main": "index.ts",
-  "type": "module",
-  "scripts": {
-    "start": "npx tsx index.ts",
-    "start:http": "MCP_TRANSPORT=http ts-node-esm index.ts",
-    "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [
-    "webchuck",
-    "mcp",
-    "audio",
-    "ai"
-  ],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.7.0",
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "uuid": "^9.0.1",
-    "ws": "^8.16.0",
-    "zod": "^3.22.4"
-  },
-  "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/node": "^20.11.5",
-    "@types/uuid": "^9.0.7",
-    "@types/ws": "^8.5.10",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
-  }
+     "name": "webchuck-mcp",
+     "version": "1.0.0",
+     "description": "MCP Server for WebChucK integration",
+     "main": "index.ts",
+     "type": "module",
+     "scripts": {
+          "build": "vite build",
+          "start": "cross-env NODE_ENV=production npm run build && npx tsx index.ts",
+          "start:dev": "cross-env NODE_ENV=development npm run build && npx tsx index.ts",
+          "dev:server": "cross-env NODE_ENV=development npx tsx index.ts",
+          "dev:client": "vite",
+          "dev": "cross-env NODE_ENV=development npm run dev:client && npm run dev:server",
+          "preview": "vite preview",
+          "test": "echo \"Error: no test specified\" && exit 1"
+     },
+     "dependencies": {
+          "@modelcontextprotocol/sdk": "^1.7.0",
+          "cors": "^2.8.5",
+          "express": "^4.18.2",
+          "react": "^18.2.0",
+          "react-dom": "^18.2.0",
+          "react-hot-toast": "^2.5.2",
+          "react-icons": "^5.5.0",
+          "react-query": "^3.39.3",
+          "ts-essentials": "^10.0.4",
+          "ts-loader": "^9.5.2",
+          "uuid": "^9.0.1",
+          "ws": "^8.16.0",
+          "zod": "^3.22.4"
+     },
+     "devDependencies": {
+          "@monaco-editor/react": "^4.7.0",
+          "@types/cors": "^2.8.17",
+          "@types/express": "^4.17.21",
+          "@types/node": "^20.11.5",
+          "@types/react": "^18.0.0",
+          "@types/react-dom": "^18.0.0",
+          "@types/uuid": "^9.0.7",
+          "@types/ws": "^8.5.10",
+          "@vitejs/plugin-react": "^3.1.0",
+          "concurrently": "^8.2.2",
+          "cross-env": "^7.0.3",
+          "dotenv": "^16.4.7",
+          "monaco": "^1.201704190613.0",
+          "monaco-editor": "^0.52.2",
+          "ts-node": "^10.9.2",
+          "tsx": "^4.19.3",
+          "typescript": "^5.8.2",
+          "vite": "^4.2.0",
+          "webchuck": "^1.2.10"
+     }
 }

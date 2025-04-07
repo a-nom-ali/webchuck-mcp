@@ -17,7 +17,22 @@ This server provides:
 - `mcp-tools.ts` - MCP tools and resources
 - `public/` - Static files (including the WebChucK client)
 
-## Setup
+## Configuration
+
+The application can be configured using environment variables. Create a `.env` file in the project root directory based on the `.env.example` template.
+
+### Server Options
+- `PORT`: Port for the server (default: 3030)
+- `HOST`: Host to bind to (default: 0.0.0.0 - all interfaces)
+- `PUBLIC_URL`: Public URL for the server (default: http://localhost:PORT)
+- `NODE_ENV`: Environment mode (development/production)
+- `CORS_ORIGINS`: Comma-separated list of allowed origins for CORS
+
+### Client Options
+- `VITE_API_URL`: Base URL for API requests (default: current host)
+- `VITE_WS_URL`: Base URL for WebSocket connections (default: current host with ws:// or wss://)
+- 
+- ## Setup
 
 1. Install dependencies:
 ```bash
