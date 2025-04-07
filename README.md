@@ -43,7 +43,8 @@ WebChucK MCP is a sophisticated browser-based implementation of the [ChucK](http
    ```
 
 3. Add to your Claude or Other client config:
-   ```json
+
+```json
 {
 "mcpServers": {
    "webchuck_mcp" : {
