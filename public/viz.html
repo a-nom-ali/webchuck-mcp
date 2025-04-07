@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Reactive Particle Visualizer</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Allows click-through interactions */
+        }
+        .controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: sans-serif;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="visualizer"></canvas>
+
+<div class="controls">
+    <label>Effect:
+        <select id="effect-select">
+            <option value="random">Randomized</option>
+            <option value="cycle">Cycle Effects</option>
+            <option value="particles">Particles</option>
+            <option value="bars">Bars</option>
+            <option value="wave">Waveform</option>
+        </select>
+    </label>
+    <button id="start-btn">Start Audio</button>
+</div>
+
+<script>
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+
+    // Audio setup
+    let audioContext, analyser, dataArray;
+
+    async function initAudio() {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const source = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+        animate();
+    }
+
+    // Effects
+    const effects = ['particles', 'bars', 'wave'];
+    let currentEffect = 'random';
+    let effectIndex = 0;
+
+    const select = document.getElementById('effect-select');
+    select.addEventListener('change', () => {
+        currentEffect = select.value;
+    });
+
+    function animate() {
+        requestAnimationFrame(animate);
+        analyser.getByteFrequencyData(dataArray);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        let effect = currentEffect;
+        if (effect === 'random') {
+            effect = effects[Math.floor(Math.random() * effects.length)];
+        } else if (effect === 'cycle') {
+            effect = effects[effectIndex % effects.length];
+            if (Math.random() < 0.01) effectIndex++;
+        }
+
+        if (effect === 'particles') drawParticles();
+        else if (effect === 'bars') drawBars();
+        else if (effect === 'wave') drawWaveform();
+    }
+
+    function drawParticles() {
+        for (let i = 0; i < dataArray.length; i++) {
+            ctx.fillStyle = `hsl(${dataArray[i] * 2}, 100%, 50%)`;
+            ctx.beginPath();
+            ctx.arc(
+                Math.random() * canvas.width,
+                Math.random() * canvas.height,
+                dataArray[i] / 10,
+                0,
+                Math.PI * 2
+            );
+            ctx.fill();
+        }
+    }
+
+    function drawBars() {
+        const barWidth = canvas.width / dataArray.length;
+        for (let i = 0; i < dataArray.length; i++) {
+            ctx.fillStyle = `hsl(${i * 10}, 100%, 50%)`;
+            ctx.fillRect(
+                i * barWidth,
+                canvas.height - dataArray[i] * 2,
+                barWidth,
+                dataArray[i] * 2
+            );
+        }
+    }
+
+    function drawWaveform() {
+        analyser.getByteTimeDomainData(dataArray);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgb(255,255,255)';
+        ctx.beginPath();
+
+        const sliceWidth = canvas.width / dataArray.length;
+        let x = 0;
+
+        for (let i = 0; i < dataArray.length; i++) {
+            const v = dataArray[i] / 128.0;
+            const y = v * canvas.height / 2;
+
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+
+            x += sliceWidth;
+        }
+
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.stroke();
+    }
+
+    // Start Button
+    const startBtn = document.getElementById('start-btn');
+    startBtn.onclick = () => {
+        initAudio();
+        startBtn.disabled = true;
+    };
+</script>
+
+</body>
+</html>

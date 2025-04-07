@@ -12,6 +12,6 @@
   "ts-node": {
     "esm": true
   },
-  "include": ["*.ts"],
+  "include": ["*.ts", "public"],
   "exclude": ["node_modules"]
 }

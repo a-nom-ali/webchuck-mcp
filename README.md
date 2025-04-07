@@ -1,93 +1,192 @@
-# WebChucK MCP Server
+# WebChucK MCP: Browser-Based ChucK with AI Integration
 
-A server that integrates WebChucK (a browser-based version of ChucK audio programming language) with the Model Context Protocol (MCP) for AI-assisted audio synthesis and sound design.
+<div align="center">
+  
+![WebChucK MCP Logo](images/logo.png)
+
+_A browser-based ChucK audio programming environment with AI assistance through Model Context Protocol_
+
+</div>
 
 ## Overview
 
-This server provides:
-- WebSocket connections for WebChucK browser clients
-- MCP tools for AI assistants to interact with WebChucK
-- Express API endpoints for direct interaction
+WebChucK MCP is a sophisticated browser-based implementation of the [ChucK](https://chuck.stanford.edu/) audio programming language integrated with the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) for AI assistance. This platform allows users to write, execute, and interact with ChucK code in a web environment, providing features for real-time parameter control, audio visualization, code management, and more.
+
+<img src="images/screenshot.png" alt="WebChucK MCP Interface" width="800">
+
+## Features
+
+### Core Features
+- **Browser-based ChucK Execution**: Run ChucK code directly in your browser without installation
+- **Real-time Code Execution**: Write and execute ChucK code with immediate audio feedback
+- **Sample Library**: Browse, search, and use audio samples in your compositions
+- **Audio Recording**: Record from your microphone and save as samples
+- **Code Library**: Save and manage snippets for reuse
+
+### Advanced Features
+- **Real-time Parameter Control**: Extract and modify parameters from running code
+- **Audio Visualization**: View waveform, spectrum, and level visualizations
+- **Dark/Light Theme**: Fully customizable theming with system preference detection
+- **AI Integration**: Connect with AI assistants through Model Context Protocol
+
+## Quick Start
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/webchuck-mcp.git
+   cd webchuck-mcp
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Build and start the server:
+   ```bash
+   npm run build
+   npm start
+   ```
+
+4. Open your browser and navigate to:
+   ```
+   http://localhost:3030
+   ```
+
+## Using WebChucK MCP
+
+### Basic Workflow
+
+1. **Connect to WebChucK**: Click "Connect to WebChucK" to initialize the audio engine
+2. **Connect to Server**: Click "Connect to Server" to establish WebSocket connection
+3. **Write Code**: Enter ChucK code in the editor or load examples/snippets
+4. **Run Code**: Click "Run Code" to execute your composition
+5. **Interact**: Use parameter controls to modify running code in real-time
+
+### Parameter Controls
+
+Add parameter annotations to your code for real-time control:
+
+```chuck
+// @param float for controlling gain
+// @range 0.0 1.0
+float gain = 0.5;
+
+// @param int for frequency values
+// @range 220 880
+int freq = 440;
+
+SinOsc osc => dac;
+gain => osc.gain;
+freq => osc.freq;
+2::second => now;
+```
+
+### Audio Visualization
+
+The interface provides three visualization types:
+- **Waveform**: Time-domain representation of the audio
+- **Spectrum**: Frequency-domain representation with colorful bars
+- **Level Meter**: Amplitude visualization with color-coded indicators
+
+### AI Integration
+
+The server exposes MCP tools and resources that allow AI assistants to:
+- Execute ChucK code
+- Stop running code
+- Retrieve code from the editor
+- List and preload samples
+- Debug execution and sessions
 
 ## Project Structure
 
-- `index.ts` - Main entry point for the server
-- `sessions.ts` - Session management singleton
-- `webchuck-routes.ts` - Express routes for WebChucK API
-- `mcp-tools.ts` - MCP tools and resources
-- `public/` - Static files (including the WebChucK client)
-
-## Setup
-
-1. Install dependencies:
-```bash
-npm install
+```
+webchuck_mcp/
+├── index.ts                   # Main server file with MCP implementation
+├── public/                    # Client-side files
+│   ├── index.html             # Main HTML layout
+│   ├── style.css              # CSS styling with theme variables
+│   ├── js/                    # JavaScript modules
+│   │   ├── main.js            # Main application coordination
+│   │   ├── ui.js              # UI management functions
+│   │   ├── webchuckService.js # WebChucK integration
+│   │   ├── serverConnection.js # Server communication
+│   │   ├── audioRecorder.js   # Audio recording functionality
+│   │   ├── libraryService.js  # Code snippet library management
+│   │   ├── parameterControl.js # Real-time parameter controls
+│   │   ├── audioVisualizer.js # Audio visualization components
+│   │   └── config.js          # Configuration constants
+│   └── audio_files/           # Audio samples directory
+└── utils/                     # Server utilities
+    └── logger.js              # Logging utility
 ```
 
-2. Start the server:
-```bash
-npm run dev
-```
+## MCP Integration
 
-3. Access the WebChucK client at:
-```
-http://localhost:3030/
-```
+The server exposes the following MCP components:
 
-4. Connect AI assistant to:
-```
-http://localhost:3030/sse
-```
+### Tools
+- `executeChucK`: Execute ChucK code in a session
+- `stopChucK`: Stop execution in a session
+- `getCodeFromEditor`: Retrieve current code from the editor
+- `listAudioFiles`: List available audio files for preloading
+- `getChucKSessions`: List active WebChucK sessions
+- `preloadSamples`: Load sample samples
+- `playWithSamples`: Combine preloading and code execution
+- `debugExecutions`, `debugPreload`, `debugSessions`: Debugging utilities
 
-## Usage
+### Resources
+- `audioFile`: Dynamic resource for accessing audio files
+- `chuck-example`: Resource with ChucK code examples
 
-### Browser Client
+### Prompts
+- `webchuck_syntax_reminder`: Syntax guidance
+- `webchuck_demo`: ChucK feature demonstrations
+- `webchuck_assistant_guide`: User guidance
 
-1. Open the WebChucK client in your browser
-2. Click "Connect to WebChucK" 
-3. Click "Connect to Server"
-4. Use the code editor to write and execute ChucK code
+## Development
 
-### AI Assistant (Claude)
+### Requirements
+- Node.js (v14+)
+- npm or yarn
+- Modern web browser with Web Audio API support
 
-Configure Claude Desktop to use the SSE endpoint:
+### Setting Up for Development
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Build TypeScript: `npm run build`
+4. Start the server: `npm run dev`
 
-```json
-{
-  "webchuck_mcp": {
-    "command": "npx",
-    "args": [
-      "tsx",
-      "path/to/index.ts"
-    ],
-    "env": {
-      "DEBUG": "true"
-    }
-  }
-}
-```
+### Adding New Features
+The modular architecture makes it easy to extend. Key extension points:
+- Add new tools in `index.ts`
+- Add new UI components in `public/js/`
+- Extend CSS variables in `public/style.css`
 
-Then use the MCP tools in Claude:
-- `executeChucK`: Execute ChucK code
-- `stopChucK`: Stop ChucK execution
-- `getChucKSessions`: List active sessions
-- `listAudioFiles`: List available audio files
+## Troubleshooting
 
-## API Endpoints
-
-- `POST /api/execute` - Execute ChucK code
-- `POST /api/stop` - Stop ChucK execution
-- `GET /api/status/:sessionId` - Get session status
-- `GET /api/audio` - List audio files
-- `GET /api/audio/:filename` - Download audio file
-- `POST /api/upload` - Upload audio file
-- `GET /api/debug/sessions` - Debug session information
-
-## ChucK Resources
-
-- Audio resources: `audio://{filename}`
-- Example code: `chuck-example://{category}/{name}`
+### Common Issues
+- **No sound**: Ensure audio context is initialized (click "Connect to WebChucK")
+- **WebSocket connection failed**: Check if server is running
+- **Parameter controls not appearing**: Ensure code has properly annotated parameters
+- **Visualization not working**: Check browser Web Audio API support
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [ChucK](https://chuck.stanford.edu/) - The programming language by Ge Wang
+- [WebChucK](https://github.com/ccrma/webchuck) - Browser port of ChucK
+- [Model Context Protocol](https://modelcontextprotocol.io/) - AI integration framework
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add some amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
