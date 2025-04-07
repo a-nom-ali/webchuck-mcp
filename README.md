@@ -54,7 +54,6 @@ WebChucK MCP is a sophisticated browser-based implementation of the [ChucK](http
         "C:\\Path\\To\\webchuck_mcp\\index.ts"
       ],
       "env": {
-        "DEBUG" : "true",
         "WORKING_DIRECTORY" : "C:\\Path\\To\\webchuck_mcp"
       }
     }
