@@ -46,7 +46,7 @@ WebChucK MCP is a sophisticated browser-based implementation of the [ChucK](http
 
 ```json
 {
-"mcpServers": {
+  "mcpServers": {
    "webchuck_mcp" : {
       "command": "npx",
       "args": [
