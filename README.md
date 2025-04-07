@@ -42,30 +42,50 @@ WebChucK MCP is a sophisticated browser-based implementation of the [ChucK](http
    npm install
    ```
 
-3. Build and start the server:
-   ```bash
-   npm run build
-   npm start
-   ```
+3. Add to your Claude or Other client config:
+   ```json
+{
+"mcpServers": {
+   "webchuck_mcp" : {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "C:\\Path\\To\\webchuck_mcp\\index.ts"
+      ],
+      "env": {
+        "DEBUG" : "true",
+        "WORKING_DIRECTORY" : "C:\\Path\\To\\webchuck_mcp"
+      }
+    }
+  }
+}
+```
 
 4. Open your browser and navigate to:
    ```
    http://localhost:3030
    ```
 
+5. Click "Connect to WebChucK".
+
+6. Prompt Claude to produce a soundscape with custom controls.
+
+7. (Optional) Open http://localhost:3030 in more tabs for more sessions.
+
 ## Using WebChucK MCP
 
 ### Basic Workflow
 
 1. **Connect to WebChucK**: Click "Connect to WebChucK" to initialize the audio engine
-2. **Connect to Server**: Click "Connect to Server" to establish WebSocket connection
-3. **Write Code**: Enter ChucK code in the editor or load examples/snippets
-4. **Run Code**: Click "Run Code" to execute your composition
+2. **Connect to Server**: Should attempt to auto-connect, or click "Connect to Server" to establish WebSocket connection
+3. **Ask AI to Write Code**: Ask your AI agent to write ChucK code for your composition
+4. **AI Debugs And Executes Code**: AI will debug and execute the code in WebChucK  
 5. **Interact**: Use parameter controls to modify running code in real-time
+6. **Save Snippets**: Save the good stuff to reuse and layer later!
 
 ### Parameter Controls
 
-Add parameter annotations to your code for real-time control:
+The following parameter annotations in code adds real-time control:
 
 ```chuck
 // @param float for controlling gain
@@ -102,23 +122,31 @@ The server exposes MCP tools and resources that allow AI assistants to:
 
 ```
 webchuck_mcp/
-├── index.ts                   # Main server file with MCP implementation
-├── public/                    # Client-side files
-│   ├── index.html             # Main HTML layout
-│   ├── style.css              # CSS styling with theme variables
-│   ├── js/                    # JavaScript modules
-│   │   ├── main.js            # Main application coordination
-│   │   ├── ui.js              # UI management functions
-│   │   ├── webchuckService.js # WebChucK integration
-│   │   ├── serverConnection.js # Server communication
-│   │   ├── audioRecorder.js   # Audio recording functionality
-│   │   ├── libraryService.js  # Code snippet library management
-│   │   ├── parameterControl.js # Real-time parameter controls
-│   │   ├── audioVisualizer.js # Audio visualization components
-│   │   └── config.js          # Configuration constants
-│   └── audio_files/           # Audio samples directory
-└── utils/                     # Server utilities
-    └── logger.js              # Logging utility
+├── index.ts                     # Main server file with MCP implementation
+├── public/                      # Client-side files
+│   ├── index.html               # Main HTML layout
+│   ├── style.css                # CSS styling with theme variables
+│   ├── js/                      # JavaScript modules
+│   │   ├── main.js              # Main application coordination
+│   │   ├── ui.js                # UI management functions
+│   │   ├── webchuckService.js   # WebChucK integration
+│   │   ├── serverConnection.js  # Server communication
+│   │   ├── audioRecorder.js     # Audio recording functionality
+│   │   ├── libraryService.js    # Code snippet library management
+│   │   ├── parameterControl.js  # Real-time parameter controls
+│   │   ├── audioVisualizer.js   # Audio visualization components
+│   │   └── config.js            # Configuration constants
+│   └── audio_files/             # Audio samples directory
+├── server/                      # Server-side files
+│   ├── apiController.ts         # API Controller
+│   ├── audioService.ts          # Audio Service
+│   ├── config.ts                # config
+│   ├── mcpServerConfig.ts       # MCP Server
+│   ├── sessionsManager.ts       # Session Manager
+│   ├── transportManager.ts      # Transport Manager
+│   └── webSocketHandler.js      # Web Socket handler
+└── utils/                       # Server utilities
+    └── logger.js                # Logging utility
 ```
 
 ## MCP Integration
@@ -158,10 +186,16 @@ The server exposes the following MCP components:
 4. Start the server: `npm run dev`
 
 ### Adding New Features
+#### You're welcome to add features - but there's a newer version in the pipeline. Please feel free to reach out to me if you're interested in contributing to this project!
+
+**<\!-- Deprecated section start -->** 
+
 The modular architecture makes it easy to extend. Key extension points:
 - Add new tools in `index.ts`
 - Add new UI components in `public/js/`
 - Extend CSS variables in `public/style.css`
+
+**<\!-- end Deprecated section -->** 
 
 ## Troubleshooting
 
