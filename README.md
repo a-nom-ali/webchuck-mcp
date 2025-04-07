@@ -90,16 +90,11 @@ The following parameter annotations in code adds real-time control:
 ```chuck
 // @param float for controlling gain
 // @range 0.0 1.0
-float gain = 0.5;
+0.5 => float gain;
 
 // @param int for frequency values
 // @range 220 880
-int freq = 440;
-
-SinOsc osc => dac;
-gain => osc.gain;
-freq => osc.freq;
-2::second => now;
+440 => int freq;
 ```
 
 ### Audio Visualization
