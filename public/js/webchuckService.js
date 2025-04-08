@@ -168,6 +168,20 @@ async function preprocessCodeForSamples(code) {
 }
 
 
+async function getGitHubRawUrl(owner, repo, branch, file) {
+    const rawUrl = `https://raw.githubusercontent.com${owner}/${repo}/${branch}/${file.path}`;
+    console.log(`Raw URL for ${file.name}:`, rawUrl);
+    return rawUrl;
+}
+
+
+async function getGitHubFolderList(owner, repo, branch, file) {
+    const response = await fetch(`/api/repo-content/${owner}/:${repo}/${branch}`);
+    if (!response.ok) {
+    }
+}
+
+
 async function preprocessCodeForParameters(code) {
     // Initialize parameter controls from code
     const hasParams = ParameterControl.initParameterControl(code);
