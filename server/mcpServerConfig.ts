@@ -39,7 +39,7 @@ export class McpServerConfig {
             "continues in the background until explicitly stopped with stopChucK, allowing script layering.",
             {
                 code: z.string().describe("The ChucK code to execute - MUST follow ChucK language syntax - no C or C++ syntax!"),
-                sessionId: z.string().describe("Session ID for an existing WebChucK session - obtain this from getChucKSessions")
+                sessionId: z.string().describe("Session ID for an existing WebChucK session - obtain this from getSessions")
             },
             async ({code, sessionId}) => {
                 try {
@@ -195,6 +195,41 @@ export class McpServerConfig {
             }
         );
 
+// ==== List Audio File Keywords Tool ====
+        this.mcpServer.tool("listAvailableAudioFileKeywords",
+            "Lists all available audio file keywords that can be used to search for specific sample families. Use this first to identify sample families available for listAudioFiles or preloadSamples.",
+            {
+            },
+            async () => {
+                try {
+                    let apiUrl = `http://localhost:${this.port}/api/search/keywords`;
+
+                    const response = await fetch(apiUrl);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    return {
+                        content: [{
+                            type: "text",
+                            text: JSON.stringify(data)
+                        }]
+                    };
+                } catch (err) {
+                    this.logger.error('Error listing keywords:', err);
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `Error listing keywords: ${err}`
+                        }]
+                    };
+                }
+            }
+        );
+
 // ==== List Audio Files Tool ====
         this.mcpServer.tool("listAudioFiles",
             "Lists all available audio files that can be preloaded as samples. Use this first to identify samples to load with preloadSamples. Note that not all listed samples may load successfully.",
@@ -250,8 +285,42 @@ export class McpServerConfig {
         );
 
 // ==== Get Active Sessions Tool ====
-        this.mcpServer.tool("getChucKSessions",
-            "The webchuck.getChucKSessions tool lists all active WebChucK sessions and their unique identifiers, allowing multiple WebChucK clients to be used as an ensemble:\n" +
+        this.mcpServer.tool("getSessionStatus",
+            "The webchuck.getSessionStatus tool returns the status of a session queried by the unique sessionId",
+            {
+                sessionId: z.string().describe("Session ID for an existing WebChucK session")
+            },
+            async (sessionId) => {
+                try {
+                    const response = await fetch(`http://localhost:${this.port}/api/session/${sessionId}`);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    return {
+                        content: [{
+                            type: "text",
+                            text: JSON.stringify(data)
+                        }]
+                    };
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `Error getting session: ${errorMessage}`
+                        }]
+                    };
+                }
+            }
+        );
+
+// ==== Get Active Sessions Tool ====
+        this.mcpServer.tool("getSessions",
+            "The webchuck.getSessions tool lists all active WebChucK sessions and their unique identifiers, allowing multiple WebChucK clients to be used as an ensemble:\n" +
             "\n" +
             "* Call this tool if you don't have a session Id yet, or when you get a 404 error\n" +
             "* The tool returns the total number of active sessions and their respective session IDs\n" +
@@ -1084,7 +1153,7 @@ To execute this code, use the executeChucK tool.`
 When working with ChucK in this conversation, please follow these guidelines to avoid common errors:
 
 1. WORKFLOW ESSENTIALS:
-   - Always get a session ID first with getChucKSessions
+   - Always get a session ID first with getSessions
    - Attempt to load ALL samples at once with preloadSamples as incremental loading is experimental
    - Use debugPreload to verify which samples actually loaded
    - Only use the EXACT virtualFilenames from debugPreload results

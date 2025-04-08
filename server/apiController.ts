@@ -112,6 +112,7 @@ export class ApiController {
         });
 
 // ==== API: Upload audio file ====
+        // TODO: Tool Setup
         this.app.post('/api/upload', (req, res) => {
             try {
                 const fileId = uuidv4();
@@ -169,7 +170,7 @@ export class ApiController {
         });
 
         // ==== API: List available audio files ====
-        this.app.get('/api/keywords', (req, res) => {
+        this.app.get('/api/search/keywords', (req, res) => {
             try {
                 let audioKeywords: string[] = [];
                 const _this = this;

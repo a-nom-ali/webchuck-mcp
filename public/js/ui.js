@@ -179,8 +179,8 @@ export function setCodeEditorValue(code) {
 
 export function refreshSampleKeywords() {
     const select = DOMElements.sampleKeywordSelect();
-    // Fetch keywords from server endpoint /api/keywords
-    fetch('/api/keywords')
+    // Fetch keywords from server endpoint /api/search/keywords
+    fetch('/api/search/keywords')
         .then(response => response.json())
         .then(data => {
             select.innerHTML = ''; // Clear previous options
