@@ -21,19 +21,21 @@
             <div class="status" id="connection-status"><span class="red">Not connected</span></div>
         </h2>
         <div class="controls-row">
-            <button id="connect-webchuck-btn" style="flex:1">Connect to WebChucK</button>
+            <button id="start-webchuck-btn" style="flex:1">Start WebChucK</button>
         </div>
         <div class="controls-row">
             <button id="connect-server-btn" style="flex:1" disabled>Connect to Server</button>
         </div>
-        <div class="controls-row">
-            <label for="session-name-input" style="flex:1">Session Name: </label>
+        <div class="section subsection">
+            <div class="controls-row">
+                <label for="session-name-input" style="flex:1">Session Name: </label>
+            </div>
+            <div class="controls-row">
+                <input type="text" id="session-name-input" placeholder="Enter name (optional)" disabled style="flex:1">
+                <button id="set-session-name-btn" style="flex:1" disabled>Rename Session</button>
+                <div id="session-id"></div>
+            </div>
         </div>
-        <div class="controls-row">
-            <input type="text" id="session-name-input" placeholder="Enter name (optional)" disabled style="flex:1">
-            <button id="set-session-name-btn" style="flex:1" disabled>Save</button>
-        </div>
-        <div id="session-id"></div>
         <p></p>
     </div>
 

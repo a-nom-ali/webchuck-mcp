@@ -38,10 +38,10 @@ The WebChucK MCP interface is divided into several functional sections:
 
 ## Basic Usage
 
-### Connecting to WebChucK
+### Starting WebChucK
 
 1. Launch the application
-2. Click the "Connect to WebChucK" button
+2. Click the "Start WebChucK" button
 3. Once connected, click "Connect to Server" to enable server features
 4. You can optionally set a session name for identification
 

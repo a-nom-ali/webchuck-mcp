@@ -18,7 +18,7 @@ This guide helps you diagnose and fix common issues with WebChucK MCP.
 ### WebChucK Won't Connect
 
 **Symptoms:**
-- "Connect to WebChucK" button doesn't change state
+- "Start WebChucK" button doesn't change state
 - Error in console about WebChucK initialization
 - Connection status remains at "Not connected"
 

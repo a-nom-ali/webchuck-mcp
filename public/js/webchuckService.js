@@ -310,7 +310,7 @@ export async function preloadChuckFiles(fileList) {
         return false;
     }
      if (!theChuck) {
-        UI.updateConsole('Please connect to WebChucK first.');
+        UI.updateConsole('Please start WebChucK first.');
         return { success: false, message: "WebChucK not connected." };
     }
      if (!fileList || fileList.length === 0) {
@@ -371,7 +371,7 @@ export async function preloadChuckFiles(fileList) {
 // Preload based on sample names by fetching file list from server
 export async function preloadSamplesByName(sampleNames) {
      if (!theChuck) {
-        UI.updateConsole('Please connect to WebChucK first.');
+        UI.updateConsole('Please start WebChucK first.');
         return { success: false, message: "WebChucK not connected." };
     }
      if (!sampleNames || sampleNames.length === 0) {

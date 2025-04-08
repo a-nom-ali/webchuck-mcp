@@ -131,6 +131,8 @@ function disconnectWebSocket() {
     }
     reconnectAttempts = 0; // Reset attempts on manual disconnect
 
+    // UI.DOMElements.startWebChuckBtn().classList.remove('hidden');
+
     if (serverSocket && serverSocket.readyState === WebSocket.OPEN) {
         serverSocket.close(1000, "User initiated disconnect"); // Normal closure code 1000
         UI.updateConsole("Disconnecting from server...");

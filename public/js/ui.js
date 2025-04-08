@@ -10,7 +10,7 @@ const DOMElements = {
     connectionStatusSection: () => document.getElementById('connection-status-section'),
     connectionStatusSectionTitle: () => document.getElementById('connection-status-section-title'),
     connectionStatusSectionTitleText: () => document.getElementById('connection-status-section-title-text'),
-    connectWebChuckBtn: () => document.getElementById('connect-webchuck-btn'),
+    startWebChuckBtn: () => document.getElementById('start-webchuck-btn'),
     connectServerBtn: () => document.getElementById('connect-server-btn'),
     runBtn: () => document.getElementById('run-btn'),
     stopBtn: () => document.getElementById('stop-btn'),
@@ -29,7 +29,7 @@ const DOMElements = {
     sessionIdElement: () => document.getElementById('session-id'),
     sessionNameInput: () => document.getElementById('session-name-input'),
     setSessionNameBtn: () => document.getElementById('set-session-name-btn'),
-    
+
     // Sample Library Elements
     loadSamplesBtn: () => document.getElementById('load-samples-btn'),
     searchSamplesBtn: () => document.getElementById('search-samples-btn'),
@@ -39,11 +39,11 @@ const DOMElements = {
     uploadBtn: () => document.getElementById('upload-btn'),
     recordNameInput: () => document.getElementById('record-name-input'),
     recordSampleBtn: () => document.getElementById('record-sample-btn'),
-    
+
     // Examples Elements
     examplesDropdown: () => document.getElementById('examples-dropdown'),
     loadExampleBtn: () => document.getElementById('load-example-btn'),
-    
+
     // Sample Elements
     preloadSamplesBtn: () => document.getElementById('preload-samples-btn'),
     doUploadSamplesBtn: () => document.getElementById('do-upload-btn'),
@@ -52,18 +52,18 @@ const DOMElements = {
     cancelRecordSamplesBtn: () => document.getElementById('cancel-record-btn'),
     sampleKeywordSelect: () => document.getElementById('sample-keywords'),
     preloadStatus: () => document.getElementById('preload-status'),
-    
+
     // Library UI elements
     saveToLibraryBtn: () => document.getElementById('save-to-library-btn'),
     loadFromLibraryBtn: () => document.getElementById('load-from-library-btn'),
     deleteFromLibraryBtn: () => document.getElementById('delete-from-library-btn'),
     refreshLibraryBtn: () => document.getElementById('refresh-library-btn'),
     libraryList: () => document.getElementById('library-list'),
-    
+
     // New Phase 3-4 Elements
     themeToggle: () => document.getElementById('theme-toggle'),
     parameterControls: () => document.getElementById('parameter-controls'),
-    
+
     // Visualizer Elements
     waveformCanvas: () => document.getElementById('waveform-canvas'),
     spectrumCanvas: () => document.getElementById('spectrum-canvas'),
@@ -100,8 +100,7 @@ export function toggleConnectionStatusSection() {
     if (!WebChuckService.getChuckInstance() || !ServerConnection.isServerConnected() || !isConnectionStatusSectionExpanded()) {
         connectionStatusSection.classList.add('expanded');
         connectionStatusSection.classList.remove('collapsed');
-    }
-    else{
+    } else {
         connectionStatusSection.classList.remove('expanded');
         connectionStatusSection.classList.add('collapsed');
     }
@@ -205,12 +204,12 @@ export function getSelectedSamples() {
 
 export function getFileUploadFile() {
     const uploader = DOMElements.fileUpload();
-     return uploader && uploader.files.length > 0 ? uploader.files[0] : null;
+    return uploader && uploader.files.length > 0 ? uploader.files[0] : null;
 }
 
 export function getSelectedExample() {
-     const dropdown = DOMElements.examplesDropdown();
-     return dropdown ? dropdown.value : '';
+    const dropdown = DOMElements.examplesDropdown();
+    return dropdown ? dropdown.value : '';
 }
 
 // --- Library UI Functions ---
@@ -224,14 +223,15 @@ export function toggleCodeLibrary() {
         // Example CSS: .hidden { display: none; }
     }
 }
+
 // Populate the library list with saved snippets
 export function populateLibraryList(snippets) {
     const list = DOMElements.libraryList();
     if (!list) return;
-    
+
     // Clear the current list
     list.innerHTML = '';
-    
+
     if (!snippets || snippets.length === 0) {
         const option = document.createElement('option');
         option.value = '';
@@ -240,7 +240,7 @@ export function populateLibraryList(snippets) {
         list.appendChild(option);
         return;
     }
-    
+
     // Add each snippet to the list
     snippets.forEach(snippet => {
         const option = document.createElement('option');
@@ -249,7 +249,7 @@ export function populateLibraryList(snippets) {
         option.title = `Last updated: ${new Date(snippet.updatedAt).toLocaleString()}`;
         list.appendChild(option);
     });
-    
+
     // Enable/disable buttons based on selection
     updateLibraryButtonStates();
 }
@@ -258,10 +258,10 @@ export function populateLibraryList(snippets) {
 export function updateLibraryButtonStates() {
     const list = DOMElements.libraryList();
     const hasSelection = list && list.selectedIndex !== -1 && list.value !== '';
-    
+
     const loadBtn = DOMElements.loadFromLibraryBtn();
     const deleteBtn = DOMElements.deleteFromLibraryBtn();
-    
+
     if (loadBtn) loadBtn.disabled = !hasSelection;
     if (deleteBtn) deleteBtn.disabled = !hasSelection;
 }
@@ -318,10 +318,10 @@ export function setRecordButtonState(isRecording) {
 export function setTheme(isDark) {
     // Save preference to localStorage
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    
+
     // Apply data attribute to HTML
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    
+
     // Update toggle if it exists
     const toggle = DOMElements.themeToggle();
     if (toggle && toggle.checked !== isDark) {
@@ -333,7 +333,7 @@ export function getThemePreference() {
     // Check for saved theme preference
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
+
     return savedTheme === 'dark' || (savedTheme === null && prefersDark);
 }
 
@@ -342,21 +342,21 @@ export function getThemePreference() {
 export function resizeVisualizers() {
     const container = DOMElements.visualizerContainer();
     if (!container) return;
-    
+
     const waveformCanvas = DOMElements.waveformCanvas();
     const spectrumCanvas = DOMElements.spectrumCanvas();
     const levelMeterCanvas = DOMElements.levelMeterCanvas();
-    
+
     if (waveformCanvas) {
         waveformCanvas.width = container.clientWidth * 0.9;
         waveformCanvas.height = 100;
     }
-    
+
     if (spectrumCanvas) {
         spectrumCanvas.width = container.clientWidth * 0.9;
         spectrumCanvas.height = 100;
     }
-    
+
     if (levelMeterCanvas) {
         levelMeterCanvas.width = 30;
         levelMeterCanvas.height = 200;
@@ -376,13 +376,22 @@ export function enableWebChuckControls(enabled) {
 }
 
 export function enableServerControls(enabled) {
-     DOMElements.connectServerBtn().disabled = !enabled; // Allow re-connecting
-     DOMElements.loadSamplesBtn().disabled = !enabled;
-     DOMElements.searchSamplesBtn().disabled = !enabled;
-     DOMElements.uploadBtn().disabled = !enabled;
-     // Enable record sample controls
-     DOMElements.recordNameInput().disabled = !enabled;
-     DOMElements.recordSampleBtn().disabled = !enabled;
+    DOMElements.connectServerBtn().disabled = !enabled; // Allow re-connecting
+
+    if (enabled) {
+        DOMElements.startWebChuckBtn().classList.add('hidden');
+    }
+    else
+    {
+        DOMElements.startWebChuckBtn().classList.remove('hidden');
+    }
+
+    DOMElements.loadSamplesBtn().disabled = !enabled;
+    DOMElements.searchSamplesBtn().disabled = !enabled;
+    DOMElements.uploadBtn().disabled = !enabled;
+    // Enable record sample controls
+    DOMElements.recordNameInput().disabled = !enabled;
+    DOMElements.recordSampleBtn().disabled = !enabled;
     // Enable name setting controls based on connection status
     enableSessionNameControls(enabled);
 }
@@ -409,4 +418,4 @@ export function setSessionNameInput(name) {
 
 
 // Export the elements object if needed directly in main.js (though functions are preferred)
-export { DOMElements };
+export {DOMElements};

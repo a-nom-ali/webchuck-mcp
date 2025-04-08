@@ -66,7 +66,7 @@ WebChucK MCP is a sophisticated browser-based implementation of the [ChucK](http
    http://localhost:3030
    ```
 
-5. Click "Connect to WebChucK".
+5. Click "Start WebChucK".
 
 6. Prompt Claude to produce a soundscape with custom controls.
 
@@ -76,7 +76,7 @@ WebChucK MCP is a sophisticated browser-based implementation of the [ChucK](http
 
 ### Basic Workflow
 
-1. **Connect to WebChucK**: Click "Connect to WebChucK" to initialize the audio engine
+1. **Start WebChucK**: Click "Start WebChucK" to initialize the audio engine
 2. **Connect to Server**: Should attempt to auto-connect, or click "Connect to Server" to establish WebSocket connection
 3. **Ask AI to Write Code**: Ask your AI agent to write ChucK code for your composition
 4. **AI Debugs And Executes Code**: AI will debug and execute the code in WebChucK  
@@ -195,7 +195,7 @@ The modular architecture makes it easy to extend. Key extension points:
 ## Troubleshooting
 
 ### Common Issues
-- **No sound**: Ensure audio context is initialized (click "Connect to WebChucK")
+- **No sound**: Ensure audio context is initialized (click "Start WebChucK")
 - **WebSocket connection failed**: Check if server is running
 - **Parameter controls not appearing**: Ensure code has properly annotated parameters
 - **Visualization not working**: Check browser Web Audio API support

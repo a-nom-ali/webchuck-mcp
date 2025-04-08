@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize audio visualizer
     AudioVisualizer.initVisualizer();
      
-    UI.updateConsole("Ready. Connect to WebChucK to begin.");
+    UI.updateConsole("Ready. Start WebChucK to begin.");
 });
 
 // --- Theme Management ---
@@ -75,7 +75,7 @@ function setupEventListeners() {
 
     // Connection Buttons
     UI.DOMElements.connectionStatusSectionTitle().addEventListener('click', handleConnectionStatusTitleClick);
-    UI.DOMElements.connectWebChuckBtn().addEventListener('click', handleConnectWebChuck);
+    UI.DOMElements.startWebChuckBtn().addEventListener('click', handleStartWebChuck);
     UI.DOMElements.connectServerBtn().addEventListener('click', handleConnectServer);
 
     // Code Execution Buttons
@@ -132,8 +132,8 @@ async function handleConnectionStatusTitleClick(code) {
     UI.toggleConnectionStatusSection();
 }
 
-async function handleConnectWebChuck() {
-    UI.updateConsole("Connect WebChucK button clicked...");
+async function handleStartWebChuck() {
+    UI.updateConsole("Start WebChucK button clicked...");
     // Attempt to initialize WebChucK (includes resuming AudioContext)
     const success = await WebChuckService.initWebChuck([]);
     if (success) {

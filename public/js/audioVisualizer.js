@@ -81,7 +81,7 @@ const AudioVisualizer = (function() {
         }
     }
 
-    // Connect to WebChucK audio
+    // Start WebChucK audio
     function connectToAudio() {
         try {
             // Get the WebChucK AudioContext
@@ -336,7 +336,7 @@ const AudioVisualizer = (function() {
             return initVisualizer();
         },
         
-        // Connect to WebChucK instance
+        // Start WebChucK instance
         connectToAudio: function() {
             return connectToAudio();
         },
