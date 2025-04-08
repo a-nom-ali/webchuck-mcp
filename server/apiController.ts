@@ -309,13 +309,13 @@ export class ApiController {
         });
 
         this.app.get('/api/debug/execution/:sessionId?', (req, res) => {
-            const { sessionId } = req.params;
+            const {sessionId} = req.params;
 
             // If sessionId is provided, get specific session's execution errors
             if (sessionId) {
                 const session = this.sessionsManager.get(sessionId);
                 if (!session) {
-                    return res.status(404).json({ error: `Session not found: ${sessionId}` });
+                    return res.status(404).json({error: `Session not found: ${sessionId}`});
                 }
 
                 const errorInfo = session.debugInfo.lastExecutionError || "No errors detected for this session.";
@@ -340,13 +340,13 @@ export class ApiController {
         });
 
         this.app.get('/api/debug/preload/:sessionId?', (req, res) => {
-            const { sessionId } = req.params;
+            const {sessionId} = req.params;
 
             // If sessionId is provided, get specific session's preload results
             if (sessionId) {
                 const session = this.sessionsManager.get(sessionId);
                 if (!session) {
-                    return res.status(404).json({ error: `Session not found: ${sessionId}` });
+                    return res.status(404).json({error: `Session not found: ${sessionId}`});
                 }
 
                 const preloadInfo = session.debugInfo.lastPreloadResult && session.debugInfo.lastPreloadResult.toString() !== "" && session.debugInfo.lastPreloadResult.toString() !== "undefined"
@@ -371,6 +371,95 @@ export class ApiController {
             });
         });
 
+        /**
+         * API Endpoint to get directory contents from GitHub.
+         * Example URL: /api/repo-content/octocat/Spoon-Knife/recipes?ref=main
+         * :owner - Repository owner (e.g., 'octocat')
+         * :repo - Repository name (e.g., 'Spoon-Knife')
+         * * (splat) - Directory path within the repo (e.g., 'recipes' or 'src/components')
+         * ?ref=branch_name - Optional query parameter for branch/tag/commit (defaults to main)
+         */
+        this.app.get('/api/repo-content/:owner/:repo/*', async (req:any, res:any) => {
+            const {owner, repo} = req.params;
+            const dirPath = req.params[0] || '';
+            const ref = req.query.ref || 'main'; // Default branch
+
+            const githubToken = process.env.GITHUB_TOKEN;
+            if (!githubToken) {
+                console.error('GitHub token not found in environment variables.');
+                return res.status(500).json({error: 'Server configuration error: GitHub token missing.'});
+            }
+
+            // Construct the URL with query parameters manually for fetch
+            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${dirPath}`;
+            const urlWithParams = new URL(apiUrl);
+            urlWithParams.searchParams.append('ref', ref);
+
+            console.log(`Workspaceing: ${urlWithParams.toString()}`);
+
+            try {
+                const response = await fetch(urlWithParams.toString(), {
+                    method: 'GET', // Explicitly set method (optional for GET)
+                    headers: {
+                        'Authorization': `Bearer ${githubToken}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'X-GitHub-Api-Version': '2022-11-28'
+                    }
+                });
+
+                // fetch only throws on network errors, check response.ok for HTTP errors (4xx/5xx)
+                if (!response.ok) {
+                    let errorBody;
+                    try {
+                        // Try to parse the error body as JSON, fallback to text
+                        errorBody = await response.json();
+                    } catch (e) {
+                        errorBody = await response.text(); // Get raw text if not JSON
+                    }
+                    console.error(`GitHub API Error ${response.status}:`, errorBody);
+
+                    // Throw an error to be caught by the catch block
+                    const error = new Error(`GitHub API Error (${response.status})`) as Error & { status: number; body: any };
+                    error.status = response.status; // Add status to the error object
+                    error.body = errorBody; // Add response body to the error object
+                    throw error;
+                }
+
+                // If response.ok is true, parse the JSON body
+                const data = await response.json();
+
+                // Filter and map the data (same logic as before, using 'data' directly)
+                const files = data
+                    .filter((item: { type: string }) => item.type === 'file')
+                    .map((item: { name: string, path: string, sha: string, size: number, download_url: string | null }) => ({
+                        name: item.name,
+                        path: item.path,
+                        sha: item.sha,
+                        size: item.size,
+                        download_url: item.download_url // May still be null
+                    }));
+
+                res.json(files);
+
+            } catch (error: any) {
+                // Check if it's the custom error we threw with status
+                const status = error.status || 500; // Use status from error, or default to 500
+                const message = error.body?.message || error.message || 'Failed to fetch repository content.'; // Prefer message from GitHub error body
+
+                console.error('Error fetching GitHub content:', error); // Log the full error
+
+                // Provide more specific feedback based on status
+                if (status === 404) {
+                    return res.status(404).json({error: `Repository or path not found. Details: ${message}`});
+                }
+                if (status === 401 || status === 403) {
+                    return res.status(status).json({error: `Authentication or Permission error. Check your token and its permissions. Details: ${message}`});
+                }
+
+                // General error for other cases
+                res.status(status).json({error: `GitHub API Error: ${message}`});
+            }
+        });
         // Add other endpoints...
     }
 }
