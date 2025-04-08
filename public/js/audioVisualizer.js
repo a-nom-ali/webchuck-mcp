@@ -72,7 +72,7 @@ const AudioVisualizer = (function() {
         spectrumCanvas.width = spectrumWidth;
         spectrumCanvas.height = 100;
         
-        levelMeterCanvas.width = lelvelWidth;
+        levelMeterCanvas.width = levelWidth;
         levelMeterCanvas.height = 200;
         
         // Re-render visualizations if active
