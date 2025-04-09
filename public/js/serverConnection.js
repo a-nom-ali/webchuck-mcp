@@ -3,6 +3,7 @@ import * as UI from './ui.js';
 import * as WebChuckService from './webchuckService.js';
 import * as LibraryService from './libraryService.js';
 import { WS_URL, SERVER_URL } from './config.js';
+import ParameterControl from "./parameterControl.js";
 
 let serverSocket = null;
 let sessionId = null;
@@ -275,9 +276,23 @@ async function handleWebSocketMessage(event) {
 
             // Add case for error during rename
             case 'rename_session_error':
-            UI.updateConsole(`Error renaming session: ${data.error}`);
-            break;
+                UI.updateConsole(`Error renaming session: ${data.error}`);
+                break;
                  
+            // Set Parameter Value
+            case 'set_parameter_value':
+                UI.updateConsole(`Setting ${data.name}: to ${data.value}`);
+                await ParameterControl.updateParameter(data.name, data.value);
+                this.sendMessageToServer("parameter_set", { name: data.name, value: data.value });
+                break;
+
+            // Set Parameter Value
+            case 'get_parameter_value':
+                UI.updateConsole(`Getting ${data.name}`);
+                const value = await ParameterControl.getParameter(data.name);
+                this.sendMessageToServer("parameter_get", { name: data.name, value });
+                break;
+
             // Play code from library
             case 'play_from_library':
             if (!data.name) {

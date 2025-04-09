@@ -1,6 +1,7 @@
 // js/parameterControl.js
 import * as WebChuckService from './webchuckService.js';
 import * as UI from './ui.js';
+import * as parameters from "zod/lib/helpers/util.js";
 
 // Parameter control module
 const ParameterControl = (function() {
@@ -202,6 +203,33 @@ const ParameterControl = (function() {
     }
     
     // Update parameter in running ChucK instance
+    async function getParameterValue(name) {
+        const parameter = parameters.find(p => p.name === name);
+        if (parameter)
+        {
+            switch (type) {
+                case 'int':
+                    return chuckInstance.getInt(name);
+                    break;
+                case 'float':
+                    return chuckInstance.getFloat(name);
+                    break;
+                case 'dur':
+                    // Handle duration (convert to seconds)
+                    return chuckInstance.getFloat(name);
+                    break;
+                case 'string':
+                    // Handle duration (convert to seconds)
+                    return chuckInstance.getString(name);
+                    break;
+                default:
+                    console.warn(`Unsupported parameter type: ${type}`);
+                    return null;
+            }
+        }
+    }
+
+    // Update parameter in running ChucK instance
     async function updateParameter(name, type, value) {
         if (!isRunning) return;
         
@@ -264,7 +292,9 @@ const ParameterControl = (function() {
             }
             activeParameters = [];
         },
-        
+
+        updateParameter : updateParameter,
+        getParameterValue : getParameterValue,
         // Get active parameters (for other components)
         getActiveParameters: function() {
             return [...activeParameters];
