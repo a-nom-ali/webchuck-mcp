@@ -1,3 +1,4 @@
+// import { Chuck } from '../webchuck/wc-bundle.js'; // Adjust path if needed
 import { Chuck } from '../webchuck/wc-bundle.js'; // Adjust path if needed
 import * as UI from './ui.js';
 import {SERVER_URL, WEBCHUCK_DIR, DEFAULT_AUDIO_FILES, MAX_PRELOAD_FILES, POTENTIAL_SAMPLES} from './config.js';
@@ -13,7 +14,8 @@ let isPreloading = false; // Prevent concurrent preloads
 // --- Console Capturing ---
 // Save original console methods (attach to Chuck prototype)
 const originalChuckPrint = Chuck.prototype.chuckPrint || console.log; // Fallback if needed
-const audioContext = new AudioContext();
+window.AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioContext = new AudioContext();
 
 // Override chuckPrint
 Chuck.prototype.chuckPrint = function (...args) {
@@ -50,7 +52,7 @@ export async function initWebChuck(initialFiles) {
     let audioFilesToLoad = [];
 
     try {
-        const response = await fetch(`${SERVER_URL}/api/audio`);
+        const response = await fetch(`/api/audio`);
         if (!response.ok) {
             throw new Error(`Server responded with status: ${response.status}`);
         }
@@ -86,8 +88,21 @@ export async function initWebChuck(initialFiles) {
 
         // Initialize ChucK with a local audioContext, connect ChucK to the context destination
         preloadedFiles = [];
-        theChuck = await Chuck.init(audioFilesToLoad, audioContext, undefined, WEBCHUCK_DIR);
-        theChuck.connect(audioContext.destination);
+        audioContext = new AudioContext();
+        // if (audioContext === undefined) {
+        //     audioContext = new AudioContext();
+        // }
+        // else {
+        //     await audioContext.resume();
+        // }
+        theChuck =
+            await Chuck.init(audioFilesToLoad, audioContext, undefined, WEBCHUCK_DIR)
+            // (window.location.href.includes('localhost') || window.location.href.includes('127.0.0.1'))
+            //     ? await Chuck.init(audioFilesToLoad, audioContext, undefined, WEBCHUCK_DIR)
+            //     : await Chuck.init(audioFilesToLoad);
+
+        // theChuck = await Chuck.init(audioFilesToLoad, audioContext, undefined, WEBCHUCK_DIR);
+        // theChuck.connect(audioContext.destination);
 
         if (!theChuck) {
             throw new Error("Chuck.init returned undefined.");
@@ -389,7 +404,7 @@ export async function preloadSamplesByName(sampleNames) {
         // Next, we iterate over each and pass as q parameter to the server in a get fetch
         const filesToPreload = [];
         for (const sample of sampleNames) {
-            const response = await fetch(`${SERVER_URL}/api/audio?q=${sample}`);
+            const response = await fetch(`}/api/audio?q=${sample}`);
             if (!response.ok) {
                 throw new Error(`Server responded with status: ${response.status}`);
             }
@@ -423,7 +438,7 @@ export async function preloadSamplesByName(sampleNames) {
         // Unless this reduces the list to zero, remove all words with the same count as sampleNames.length
 
         // Get all available audio files from the server
-        // const response = await fetch(`${SERVER_URL}/api/audio`);
+        // const response = await fetch(`}/api/audio`);
         //  if (!response.ok) {
         //     throw new Error(`Server responded with status: ${response.status}`);
         // }
@@ -462,7 +477,7 @@ export async function preloadSamplesByName(sampleNames) {
 }
 
 export function getAudioContext() {
-    return audioContext;
+    return theChuck.context;
 }
 
 // --- Getter for theChuck instance (if needed externally) ---

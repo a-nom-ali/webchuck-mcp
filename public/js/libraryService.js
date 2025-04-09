@@ -2,6 +2,8 @@
 // Library service for saving, loading, and managing ChucK code snippets
 
 // Constants
+import {systemSnippets} from "./systemSounds.js";
+
 const STORAGE_KEY = 'webchuck_code_library';
 
 // Initialize library from localStorage
@@ -27,28 +29,46 @@ function saveLibraryToStorage(library) {
 }
 
 // Save a code snippet to the library
+export function getSystemSnippet(name) {
+    if (!name) {
+        return {success: false, message: 'Snippet name is required', code: null};
+    }
+
+    if (!name in systemSnippets) {
+        return {success: false, message: `Snippet "${name}" not found`, code: null};
+    }
+
+    const snippet = systemSnippets[name];
+
+    if (!snippet) {
+        return {success: false, message: `Snippet "${name}" not found`, code: null};
+    }
+    return {success: true, message: `Loaded snippet "${name}"`, code: snippet};
+}
+
+// Save a code snippet to the library
 export function saveSnippet(name, code) {
     if (!name || !code) {
-        return { success: false, message: 'Name and code are required' };
+        return {success: false, message: 'Name and code are required'};
     }
-    
+
     const library = initLibrary();
-    
+
     // Check if it already exists (optional: could add overwrite confirmation in UI)
     const alreadyExists = library[name] !== undefined;
-    
+
     // Add timestamp to track when snippets were created/updated
     library[name] = {
         code,
         updatedAt: new Date().toISOString()
     };
-    
+
     const saved = saveLibraryToStorage(library);
-    
-    return { 
-        success: saved, 
-        message: saved 
-            ? (alreadyExists ? `Updated snippet "${name}"` : `Saved snippet "${name}"`) 
+
+    return {
+        success: saved,
+        message: saved
+            ? (alreadyExists ? `Updated snippet "${name}"` : `Saved snippet "${name}"`)
             : 'Failed to save snippet'
     };
 }
@@ -56,36 +76,36 @@ export function saveSnippet(name, code) {
 // Load a code snippet from the library
 export function loadSnippet(name) {
     if (!name) {
-        return { success: false, message: 'Snippet name is required', code: null };
+        return {success: false, message: 'Snippet name is required', code: null};
     }
-    
+
     const library = initLibrary();
     const snippet = library[name];
-    
+
     if (!snippet) {
-        return { success: false, message: `Snippet "${name}" not found`, code: null };
+        return {success: false, message: `Snippet "${name}" not found`, code: null};
     }
-    
-    return { success: true, message: `Loaded snippet "${name}"`, code: snippet.code };
+
+    return {success: true, message: `Loaded snippet "${name}"`, code: snippet.code};
 }
 
 // Delete a code snippet from the library
 export function deleteSnippet(name) {
     if (!name) {
-        return { success: false, message: 'Snippet name is required' };
+        return {success: false, message: 'Snippet name is required'};
     }
-    
+
     const library = initLibrary();
-    
+
     if (library[name] === undefined) {
-        return { success: false, message: `Snippet "${name}" not found` };
+        return {success: false, message: `Snippet "${name}" not found`};
     }
-    
+
     delete library[name];
     const saved = saveLibraryToStorage(library);
-    
-    return { 
-        success: saved, 
+
+    return {
+        success: saved,
         message: saved ? `Deleted snippet "${name}"` : 'Failed to delete snippet'
     };
 }
@@ -93,21 +113,21 @@ export function deleteSnippet(name) {
 // List all available snippets
 export function listSnippets() {
     const library = initLibrary();
-    
+
     // Transform the library object into an array of objects with name and metadata
     const snippets = Object.entries(library).map(([name, data]) => ({
         name,
         updatedAt: data.updatedAt || 'Unknown',
         // Extract first line or first 30 chars as preview
-        preview: data.code.split('\n')[0].substring(0, 30) + 
-                 (data.code.split('\n')[0].length > 30 ? '...' : '')
+        preview: data.code.split('\n')[0].substring(0, 30) +
+            (data.code.split('\n')[0].length > 30 ? '...' : '')
     }));
-    
+
     // Sort by most recently updated
     snippets.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-    
-    return { 
-        success: true, 
+
+    return {
+        success: true,
         count: snippets.length,
         snippets
     };
