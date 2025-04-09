@@ -1,5 +1,5 @@
 // apiController.ts
-import {SessionsManager} from "./sessionsManager.js";
+import {sessionsManager, SessionsManager} from "./sessionsManager.js";
 import {AudioService} from "./audioService.js";
 import {Logger} from "../utils/logger.js";
 import express from "express";
@@ -9,6 +9,9 @@ import path from "path";
 import fs from "fs";
 import {WebSocketHandler} from "./webSocketHandler.js";
 import {EXCLUDED_SAMPLE_KEYWORDS} from "./config.js";
+import {SamplesApiController} from "./API/samplesApiController.js";
+import {SnippetApiController} from "./API/snippetApiController.js";
+import {VolumeApiController} from "./API/volumeApiController.js";
 
 export class ApiController {
     constructor(
@@ -461,6 +464,12 @@ export class ApiController {
                 res.status(status).json({error: `GitHub API Error: ${message}`});
             }
         });
+
         // Add other endpoints...
+
+        const sampleApiController = new SamplesApiController(this.app, sessionsManager, this.webSocketHandler, this.audioService, this.logger, this.port, this.working_directory);
+        const snippetApiController = new SnippetApiController(this.app, sessionsManager, this.webSocketHandler, this.audioService, this.logger, this.port, this.working_directory);
+        const volumeApiController = new VolumeApiController(this.app, sessionsManager, this.webSocketHandler, this.audioService, this.logger, this.port, this.working_directory);
+
     }
 }
