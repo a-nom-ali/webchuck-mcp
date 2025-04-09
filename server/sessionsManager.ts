@@ -5,6 +5,7 @@ export interface Session {
     status: string;
     activeCode: string | null;
     name?: string;
+    parameters?: Record<string, any>;
     debugInfo: {
         lastExecutionError: string;
         lastPreloadResult: string;
@@ -71,6 +72,40 @@ export class SessionsManager {
     public getName(id: string): string | undefined {
         const session = this.get(id);
         return session?.name;
+    }
+
+    // Set parameters
+    public setParameters(id: string, parameters: Record<string, any>): boolean {
+        const session = this.get(id);
+        if (session) {
+            session.parameters = parameters;
+            return true;
+        }
+        return false;
+    }
+
+    // Get parameters
+    public getParameters(id: string): Record<string, any> | undefined {
+        const session = this.get(id);
+        return session?.parameters;
+    }
+
+    // Set parameter
+    public setParameter(id: string, name: string, value: any): boolean {
+        const session = this.get(id);
+        if (session) {
+            if (!session.parameters)
+                session.parameters = {}
+            session.parameters[name] = value;
+            return true;
+        }
+        return false;
+    }
+
+    // Get parameter
+    public getParameter(id: string, name: string): any | undefined {
+        const session = this.get(id);
+        return session?.parameters?.[name];
     }
 
     private validateDebugData(data: Session | undefined) {

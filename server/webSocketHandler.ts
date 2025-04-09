@@ -57,6 +57,8 @@ export class WebSocketHandler {
             play_from_library_success: this.handlePlayFromLibrarySuccess.bind(this),
             error: this.handleClientError.bind(this),
             console_messages: this.handleConsoleMessages.bind(this),
+            get_parameter_value: this.handleGetSetParameterValue.bind(this),
+            set_parameter_value: this.handleGetSetParameterValue.bind(this),
         };
 
         if (handlers[data.type]) {
@@ -207,6 +209,13 @@ export class WebSocketHandler {
         this.sessionsManager.delete(sessionId);
         this.logger.info(`WebChucK client disconnected: ${sessionId}`);
     }
+
+    private handleGetSetParameterValue(sessionId: string, data: any) {
+        const session = this.sessionsManager.get(sessionId);
+        if (!session) return;
+        sessionsManager.setParameter(sessionId, data.paramName, data.paramValue);
+    }
+
 
     clear_execution_error_response(sessionId: string) {
         const session = this.sessionsManager.get(sessionId);

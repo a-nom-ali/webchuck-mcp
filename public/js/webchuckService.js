@@ -404,7 +404,7 @@ export async function preloadSamplesByName(sampleNames) {
         // Next, we iterate over each and pass as q parameter to the server in a get fetch
         const filesToPreload = [];
         for (const sample of sampleNames) {
-            const response = await fetch(`}/api/audio?q=${sample}`);
+            const response = await fetch(`/api/audio?q=${sample}`);
             if (!response.ok) {
                 throw new Error(`Server responded with status: ${response.status}`);
             }
