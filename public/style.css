@@ -571,12 +571,17 @@ input[type="text"] {
     margin-bottom: var(--spacing-xs);
 }
 
+.param-option,
 .param-value {
     margin-top: var(--spacing-xs);
     font-family: var(--font-family-code);
     text-align: right;
     color: var(--color-text-secondary);
     font-size: var(--font-size-small);
+}
+
+.param-option {
+    text-align: center;
 }
 
 .no-params {

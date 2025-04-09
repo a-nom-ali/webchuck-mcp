@@ -9,15 +9,24 @@ const ParameterControl = (function() {
     let isRunning = false;
     
     // Parameter types we can control
-    const CONTROLLABLE_TYPES = ['float', 'int', 'dur'];
+    const CONTROLLABLE_TYPES = ['float', 'int', 'dur', 'string'];
     
     // Regex patterns for parameter detection
     const paramPatterns = {
         // Match global variables with comments containing @param
-        global: /(\/\/\s*@param\s*.*\n)(\/\/\s*@range\s*.*\n)\s*([\d.]+)\s*=>\s*global\s*(\w+)\s*(\w+)\s*;/g,
+        global: /(\/\/\s*@param\s*.*\n)(\/\/\s*@[range|options]\s*.*\n)\s*(.+)\s*=>\s*global\s*(\w+)\s*(\w+)\s*;/g,
         
         // Match class variables with modifiers
-        classVar: /(?:public|private)?\s*([\w]+)\s*(\w+)\s*=\s*([\d.]+)\s*;/g
+        classVar: /(?:public|private)?\s*([\w]+)\s*(\w+)\s*=\s*([\d.]+)\s*;/g,
+
+        // Match range
+        range: /\/\/\s*@range\s+([\d.-]+)\s+([\d.-]+)/g,
+
+        // Match options
+        options: /\/\/\s*@options\s+(.+)\n/g,
+
+        // Match parameter
+        param: /=>\s*([\w]+)\s*(\w+)\s*;/,
     };
     
     // Extract parameters from code
@@ -35,45 +44,80 @@ const ParameterControl = (function() {
         while ((match = paramPatterns.global.exec(code)) !== null) {
             const type = match[4];
             if (CONTROLLABLE_TYPES.includes(type)) {
-                const parts = match[2].split(" ");
-                const range = {
-                    min : parts[parts.length - 2],
-                    max : parts[parts.length - 1]
+                // @param select different Western soundtrack presets
+                // @options lonely_cowboy tumbleweed_town high_noon_showdown campfire_stories saloon_brawl
+                // "lonely_cowboy" => global string current_preset;
+                if (type === 'string') {
+                    const options = match[2].replace("// @options",'').trim().split(" ");
+                    const range = {
+                        min : 0,
+                        max : options.length - 1
+                    };
+                    parameters.push({
+                        type: type,
+                        name: match[5],
+                        value: options.indexOf(match[3].replaceAll(/['"]+/g,'')),
+                        min: range.min, // Default minimum
+                        max: range.max, // Default maximum
+                        options: options,
+                        step: 1, // Step based on type
+                        global: true
+                    });
                 }
-                parameters.push({
-                    type: type,
-                    name: match[5],
-                    value: parseFloat(match[3]),
-                    min: type === 'int' ? parseInt(range.min) : parseFloat(range.min), // Default minimum
-                    max: type === 'int' ? parseInt(range.max) : parseFloat(range.max), // Default maximum
-                    step: type === 'int' ? 1 : 0.01, // Step based on type
-                    global: true
-                });
+                else {
+                    const parts = match[2].split(" ");
+                    const range = {
+                        min : parts[parts.length - 2],
+                        max : parts[parts.length - 1]
+                    }
+                    parameters.push({
+                        type: type,
+                        name: match[5],
+                        value: parseFloat(match[3]),
+                        min: type === 'int' ? parseInt(range.min) : parseFloat(range.min), // Default minimum
+                        max: type === 'int' ? parseInt(range.max) : parseFloat(range.max), // Default maximum
+                        options: null,
+                        step: type === 'int' ? 1 : 0.01, // Step based on type
+                        global: true
+                    });
+                }
             }
         }
-        
+
         // Parse for custom range annotations (e.g., // @range 0 10)
-        const rangePattern = /\/\/\s*@range\s+([\d.-]+)\s+([\d.-]+)/g;
         const lines = code.split('\n');
         
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             let rangeMatch;
-            
-            if ((rangeMatch = rangePattern.exec(line)) !== null) {
+            let optionMatch;
+
+            if (
+                (rangeMatch = paramPatterns.range.exec(line)) !== null
+                ||
+                (optionMatch = paramPatterns.options.exec(line)) !== null
+            ) {
                 // Check if the next line contains a parameter
                 if (i + 1 < lines.length) {
                     const nextLine = lines[i + 1];
-                    const paramMatch = /=>\s*([\w]+)\s*(\w+)\s*;/.exec(nextLine);
+                    const paramMatch = paramPatterns.param.exec(nextLine);
                     
                     if (paramMatch) {
                         const paramName = paramMatch[2];
-                        const min = parseFloat(rangeMatch[1]);
-                        const max = parseFloat(rangeMatch[2]);
-                        
                         // Find and update the parameter
                         const param = parameters.find(p => p.name === paramName);
                         if (param) {
+                            let min = 0;
+                            let max = 1;
+                            if (rangeMatch) {
+                                min = parseFloat(rangeMatch[1]);
+                                max = parseFloat(rangeMatch[2]);
+                            }
+                            else {
+                                min = 0;
+                                max = param.options.length - 1;
+                            }
+
                             param.min = min;
                             param.max = max;
                         }
@@ -108,7 +152,7 @@ const ParameterControl = (function() {
             label.className = 'param-label';
             // Split name by capital letters and join with spaces
             const name = param.name.replace(/([A-Z])/g, ' $1').trim();
-            label.textContent = `${name}`; //  (${param.type}):`;
+            label.textContent = `${name.split("_").join(" ")}`; //  (${param.type}):`;
             label.setAttribute('for', `param-${param.name}`);
             
             // Range slider
@@ -123,11 +167,27 @@ const ParameterControl = (function() {
             
             // Value display
             const valueDisplay = document.createElement('span');
-            valueDisplay.className = 'param-value';
-            valueDisplay.textContent = param.value;
-            
+
+            if(param.type === 'string') {
+                valueDisplay.className = 'param-option';
+                const option = param.options[0].replace(/([A-Z])/g, ' $1').trim();
+                valueDisplay.textContent = `${option.split("_").join(" ")}`; //  (${param.type}):`;
+            }
+            else {
+                valueDisplay.className = 'param-value';
+                valueDisplay.textContent = param.value;
+            }
+
             // Event listener for slider
             slider.addEventListener('input', function() {
+                if(param.type === 'string') {
+                    const newValue = parseInt(this.value);
+                    const option = param.options[newValue].replace(/([A-Z])/g, ' $1').trim();
+                    valueDisplay.textContent = `${option.split("_").join(" ")}`; //  (${param.type}):`;
+                    updateParameter(param.name, param.type, param.options[newValue]);
+
+                    return;
+                }
                 const newValue = parseFloat(this.value);
                 valueDisplay.textContent = newValue;
                 updateParameter(param.name, param.type, newValue);
@@ -164,6 +224,10 @@ const ParameterControl = (function() {
                 case 'dur':
                     // Handle duration (convert to seconds)
                     chuckInstance.setFloat(name, value);
+                    break;
+                case 'string':
+                    // Handle duration (convert to seconds)
+                    chuckInstance.setString(name, value);
                     break;
                 default:
                     console.warn(`Unsupported parameter type: ${type}`);
