@@ -13,7 +13,7 @@ const INITIAL_RECONNECT_DELAY_MS = 3000; // Start with 3 seconds
 const MAX_RECONNECT_DELAY_MS = 30000; // Max delay 30 seconds
 
 // --- WebSocket Setup ---
-
+let firstConnect = true;
 function connectWebSocket() {
     if (serverSocket && (serverSocket.readyState === WebSocket.OPEN || serverSocket.readyState === WebSocket.CONNECTING)) {
         UI.updateConsole('WebSocket already open or connecting.');
@@ -38,6 +38,19 @@ function connectWebSocket() {
 
         UI.updateConsole('WebSocket connection established.');
         UI.enableServerControls(true);
+        if (firstConnect)
+        {
+            firstConnect = false;
+            const result = LibraryService.getSystemSnippet("hello-world");
+            const snippet =
+                result.success
+                    ? result.code
+                    : UI.getCodeEditorValue();
+            WebChuckService.runCode(snippet)
+                .catch(error => {
+                    UI.updateConsole(`Error running system snippet: ${error.message}`);
+                });
+        }
         if (UI.isConnectionStatusSectionExpanded()) {
             UI.toggleConnectionStatusSection();
         }
@@ -93,6 +106,13 @@ function connectWebSocket() {
         console.error('WebSocket error:', error);
         UI.updateConsole(`WebSocket error: ${error?.message || 'Unknown error'}. Check console.`);
         UI.setConnectionStatus('<span class="red">Connection Error</span>');
+        const result = LibraryService.getSystemSnippet("socket-error");
+        if (result.success) {
+            WebChuckService.runCode(result.code)
+                .catch(error => {
+                    UI.updateConsole(`Error running system snippet: ${error.message}`);
+                });
+        }
         // Don't disable server controls here, let onclose handle state and reconnect
         // UI.enableServerControls(false);
         // UI.setSessionId(null);
@@ -335,10 +355,24 @@ export function sendConsoleMessagesToServer() {
 
 // Helper to send execution errors
 export function sendExecutionErrorToServer(errorMessage) {
+    const result = LibraryService.getSystemSnippet("error");
+    if (result.success) {
+        WebChuckService.runCode(result.code)
+            .catch(error => {
+                UI.updateConsole(`Error running system snippet: ${error.message}`);
+            });
+    }
      sendMessageToServer('execute_code_error', { error: errorMessage });
 }
 // Helper to send preload errors explicitly if needed
 export function sendPreloadErrorToServer(errorMessage) {
+    const result = LibraryService.getSystemSnippet("error");
+    if (result.success) {
+        WebChuckService.runCode(result.code)
+            .catch(error => {
+                UI.updateConsole(`Error running system snippet: ${error.message}`);
+            });
+    }
     sendMessageToServer('preload_error', { error: errorMessage });
 }
 
@@ -352,7 +386,7 @@ export async function fetchSamplesList(searchQuery = '') {
     try {
         UI.updateConsole(searchQuery ? `Searching for samples matching "${searchQuery}"...` : "Fetching all samples...");
         
-        let apiUrl = `${SERVER_URL}/api/audio`;
+        let apiUrl = `/api/audio`;
         if (searchQuery) {
             apiUrl += `?q=${encodeURIComponent(searchQuery)}`;
         }
@@ -392,7 +426,7 @@ export async function uploadFile(file) {
         // Read file as ArrayBuffer for raw upload
         const arrayBuffer = await file.arrayBuffer();
 
-        const response = await fetch(`${SERVER_URL}/api/upload`, {
+        const response = await fetch(`}/api/upload`, {
             method: 'POST',
             body: arrayBuffer,
             headers: {
@@ -427,7 +461,7 @@ export async function fetchDebugExecution() {
     }
     try {
         UI.updateConsole("Fetching execution debug data for current session...");
-        const response = await fetch(`${SERVER_URL}/api/debug/execution/${sessionId}`);
+        const response = await fetch(`}/api/debug/execution/${sessionId}`);
         if (!response.ok) {
             throw new Error(`Server responded with status: ${response.status}`);
         }
@@ -447,7 +481,7 @@ export async function fetchDebugPreload() {
     }
     try {
         UI.updateConsole("Fetching preload debug data for current session...");
-        const response = await fetch(`${SERVER_URL}/api/debug/preload/${sessionId}`);
+        const response = await fetch(`}/api/debug/preload/${sessionId}`);
         if (!response.ok) {
             throw new Error(`Server responded with status: ${response.status}`);
         }
@@ -467,7 +501,7 @@ export async function fetchDebugSessions() {
     }
     try {
         UI.updateConsole("Fetching sessions debug data...");
-        const response = await fetch(`${SERVER_URL}/api/debug/sessions`);
+        const response = await fetch(`}/api/debug/sessions`);
         if (!response.ok) {
             throw new Error(`Server responded with status: ${response.status}`);
         }

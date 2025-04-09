@@ -46,7 +46,7 @@ export class McpServerConfig {
                     // The issue: code is being sent with extra wrapping
                     // Just send the raw code string directly
 
-                    const response = await fetch(`http://localhost:${this.port}/api/execute`, {
+                    const response = await fetch(`https://localhost:${this.port}/api/execute`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
@@ -89,7 +89,7 @@ export class McpServerConfig {
             },
             async ({sessionId}) => {
                 try {
-                    const response = await fetch(`http://localhost:${this.port}/api/stop`, {
+                    const response = await fetch(`https://localhost:${this.port}/api/stop`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({sessionId}),
@@ -202,7 +202,7 @@ export class McpServerConfig {
             },
             async () => {
                 try {
-                    let apiUrl = `http://localhost:${this.port}/api/search/keywords`;
+                    let apiUrl = `https://localhost:${this.port}/api/search/keywords`;
 
                     const response = await fetch(apiUrl);
 
@@ -239,7 +239,7 @@ export class McpServerConfig {
             async ({ query }) => {
                 try {
                     let audioFiles: string[] = [];
-                    let apiUrl = `http://localhost:${this.port}/api/audio`;
+                    let apiUrl = `https://localhost:${this.port}/api/audio`;
 
                     // Add search query if provided
                     if (query) {
@@ -292,7 +292,7 @@ export class McpServerConfig {
             },
             async (sessionId) => {
                 try {
-                    const response = await fetch(`http://localhost:${this.port}/api/session/${sessionId}`);
+                    const response = await fetch(`https://localhost:${this.port}/api/session/${sessionId}`);
 
                     if (!response.ok) {
                         throw new Error(`HTTP error: ${response.status}`);
@@ -328,7 +328,7 @@ export class McpServerConfig {
             {},
             async () => {
                 try {
-                    const response = await fetch(`http://localhost:${this.port}/api/debug/sessions`);
+                    const response = await fetch(`https://localhost:${this.port}/api/debug/sessions`);
 
                     if (!response.ok) {
                         throw new Error(`HTTP error: ${response.status}`);
@@ -397,7 +397,7 @@ export class McpServerConfig {
                     // The issue: code is being sent with extra wrapping
                     // Just send the raw samples array directly
 
-                    const response = await fetch(`http://localhost:${this.port}/api/preload`, {
+                    const response = await fetch(`https://localhost:${this.port}/api/preload`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
@@ -448,7 +448,7 @@ export class McpServerConfig {
             async ({ code, samples, sessionId }) => {
                 try {
                     // First preload the samples
-                    const preloadResponse = await fetch(`http://localhost:${this.port}/api/preload`, {
+                    const preloadResponse = await fetch(`https://localhost:${this.port}/api/preload`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
@@ -465,7 +465,7 @@ export class McpServerConfig {
                     await new Promise(resolve => setTimeout(resolve, 2000));
 
                     // Then execute the code
-                    const executeResponse = await fetch(`http://localhost:${this.port}/api/execute`, {
+                    const executeResponse = await fetch(`https://localhost:${this.port}/api/execute`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
@@ -523,7 +523,7 @@ export class McpServerConfig {
                         };
                     }
 
-                    const response = await fetch(`http://localhost:${this.port}/api/debug/execution/${sessionId}`);
+                    const response = await fetch(`https://localhost:${this.port}/api/debug/execution/${sessionId}`);
 
                     if (!response.ok) {
                         throw new Error(`HTTP error: ${response.status}`);
@@ -578,7 +578,7 @@ export class McpServerConfig {
                         };
                     }
 
-                    const response = await fetch(`http://localhost:${this.port}/api/debug/preload/${sessionId}`);
+                    const response = await fetch(`https://localhost:${this.port}/api/debug/preload/${sessionId}`);
 
                     if (!response.ok) {
                         throw new Error(`HTTP error: ${response.status}`);

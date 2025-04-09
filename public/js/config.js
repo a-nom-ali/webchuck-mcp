@@ -1,8 +1,8 @@
 // js/config.js
-export const HOST = 'localhost'; // Base URL for API calls
+export const HOST = window.location.href.split("/").slice(-2)[0].split(":")[0];//'localhost'; // Base URL for API calls
 export const PORT = 3030; // Base URL for API calls
 export const SERVER_URL = `http://${HOST}:${PORT}`; // Base URL for API calls
-export const WS_URL = `ws://${HOST}:${PORT}`; // WebSocket URL
+export const WS_URL = `wss://${HOST}:${PORT}`; // WebSocket URL
 export const WEBCHUCK_DIR = './webchuck/'; // Relative path to webchuck dir from HTML
 export const MAX_PRELOAD_FILES = 256; // Limit number of files to preload at once
 

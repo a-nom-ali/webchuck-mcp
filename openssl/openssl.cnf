@@ -1,0 +1,24 @@
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+C = US # Country Code
+ST = State # State or Province
+L = City # Locality Name
+O = MyOrg # Organization Name
+OU = MyOU # Organizational Unit Name
+CN = localhost # Common Name (still useful)
+
+[v3_req]
+keyUsage = keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = localhost         # Allow access via localhost
+IP.1 = 10.0.0.181       # <--- !!! REPLACE THIS with your actual local IP !!!
+# You can add more DNS names or IPs if needed
+# DNS.2 = my-local-hostname.local
+# IP.2 = 192.168.1.XX

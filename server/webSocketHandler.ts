@@ -8,7 +8,7 @@ import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export class WebSocketHandler {
     constructor(
-        private wss: WebSocketServer,
+        public wss: WebSocketServer,
         private sessionsManager: SessionsManager,
         private audioService: AudioService,
         private logger: Logger,

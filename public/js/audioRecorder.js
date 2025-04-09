@@ -148,7 +148,7 @@ function saveBlob() {
 async function uploadRecordingToServer(audioBlob, filename) {
      UI.updateConsole(`Uploading recording ${filename} to server...`);
      try {
-        const response = await fetch(`${SERVER_URL}/api/upload`, {
+        const response = await fetch(`}/api/upload`, {
             method: 'POST',
             body: audioBlob, // Send blob directly
             headers: {
@@ -272,7 +272,7 @@ export async function recordAndSaveSample(filename) {
         // Upload the blob to the server
         UI.updateConsole(`Uploading sample ${finalFilename} to server...`);
         try {
-            const response = await fetch(`${SERVER_URL}/api/upload`, {
+            const response = await fetch(`}/api/upload`, {
                 method: 'POST',
                 body: blob,
                 headers: {
