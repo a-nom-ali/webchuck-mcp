@@ -1,13 +1,10 @@
 // js/audioVisualizer.js
 import * as UI from './ui.js';
-import {getAudioContext} from "./webchuckService.js";
 import * as WebChuckService from "./webchuckService.js";
 
 // Audio visualizer module
 const AudioVisualizer = (function() {
     // Private variables
-    let audioContext = null;
-    let audioSource = null;
     let analyser = null;
     let dataArray = null;
     let waveformCanvas = null;
@@ -84,18 +81,15 @@ const AudioVisualizer = (function() {
     // Start WebChucK audio
     function connectToAudio() {
         try {
-            // Get the WebChucK AudioContext
-            audioContext = getAudioContext();
             const theChuck = WebChuckService.getChuckInstance();
-            
-            if (!audioContext || !theChuck) {
+
+            if (!theChuck || !theChuck.context) {
                 console.error('Audio context not found in WebChucK instance');
                 return false;
             }
             
             // Create analyzer node
-
-            analyser = audioContext.createAnalyser();
+            analyser = theChuck.context.createAnalyser();
             analyser.fftSize = 2048;
             const bufferLength = analyser.frequencyBinCount;
             dataArray = new Uint8Array(bufferLength);
@@ -104,7 +98,7 @@ const AudioVisualizer = (function() {
             theChuck.connect(analyser);
             
             // And connect the analyzer to the destination
-            analyser.connect(audioContext.destination);
+            analyser.connect(theChuck.context.destination);
             
             UI.updateConsole('Audio visualizer connected to WebChucK output');
             return true;
