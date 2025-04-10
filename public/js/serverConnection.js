@@ -255,8 +255,10 @@ async function handleWebSocketMessage(event) {
                 // This message comes from the AI/Server asking the client to preload
                 if (data.samples && Array.isArray(data.samples)) {
                     UI.updateConsole(`Received request to preload: ${data.samples.join(', ')}`);
+
                     // Call preload function
                      const result = await WebChuckService.preloadSamplesByName(data.samples);
+
                      // Send result back to server
                     sendMessageToServer(result.success ? 'preload_complete' : 'preload_error', result);
                 } else {
