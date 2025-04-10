@@ -10,11 +10,12 @@ import {SnippetTools} from "./Tools/snippetTools.js";
 import {ExampleResource} from "./Resources/exampleResource.js";
 import {SampleResource} from "./Resources/sampleResource.js";
 import {Prompts} from "./Prompts/prompts.js";
+import {ParameterTools} from "./Tools/parameterTools.js";
 
 export class McpServerConfig {
     private codeTools!: CodeTools;
     private combinedTools!: CombinedTools;
-    // private parameterTools!: ;
+    private parameterTools!: ParameterTools;
     private sampleTools!: SampleTools;
     private sessionTools!: SessionTools;
     private snippetTools!: SnippetTools;
@@ -42,7 +43,7 @@ export class McpServerConfig {
     private configureTools(): void {
         this.codeTools = new CodeTools(this.mcpServer, this.sessionsManager, this.audioService, this.logger, this.port, this.working_directory);
         this.combinedTools = new CombinedTools(this.mcpServer, this.port);
-        // this.parameterTools = new ParameterTools(this.mcpServer, this.sessionsManager, this.audioService, this.logger, this.port, this.working_directory);
+        this.parameterTools = new ParameterTools(this.mcpServer, this.sessionsManager, this.port);
         this.sampleTools = new SampleTools(this.mcpServer, this.sessionsManager, this.audioService, this.logger, this.port, this.working_directory);
         this.sessionTools = new SessionTools(this.mcpServer, this.sessionsManager, this.logger, this.port, this.working_directory);
         this.snippetTools = new SnippetTools(this.mcpServer, this.sessionsManager, this.logger, this.working_directory);

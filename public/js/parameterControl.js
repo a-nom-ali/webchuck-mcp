@@ -1,7 +1,6 @@
 // js/parameterControl.js
 import * as WebChuckService from './webchuckService.js';
 import * as UI from './ui.js';
-import * as parameters from "zod/lib/helpers/util.js";
 
 // Parameter control module
 const ParameterControl = (function() {
@@ -31,8 +30,8 @@ const ParameterControl = (function() {
     };
     
     // Extract parameters from code
-    function resetextractParameters(code) {
-        activeParameters
+    function resetParameters(code) {
+        activeParameters = [];
         // parameters = [];
     };
 
@@ -168,6 +167,7 @@ const ParameterControl = (function() {
             
             // Value display
             const valueDisplay = document.createElement('span');
+            valueDisplay.id = `param-value-${param.name}`;
 
             if(param.type === 'string') {
                 valueDisplay.className = 'param-option';
@@ -204,10 +204,12 @@ const ParameterControl = (function() {
     
     // Update parameter in running ChucK instance
     async function getParameterValue(name) {
-        const parameter = parameters.find(p => p.name === name);
+        const parameter = activeParameters.find(p => p.name === name);
         if (parameter)
         {
-            switch (type) {
+            const chuckInstance = WebChuckService.getChuckInstance();
+
+            switch (parameter.type) {
                 case 'int':
                     return chuckInstance.getInt(name);
                     break;
@@ -234,6 +236,11 @@ const ParameterControl = (function() {
         if (!isRunning) return;
         
         try {
+            if (type === undefined)
+            {
+                type = activeParameters.find(p => p.name === name).type;
+            }
+
             // Use WebChucK API to update the parameter
             const chuckInstance = WebChuckService.getChuckInstance();
             if (!chuckInstance) {

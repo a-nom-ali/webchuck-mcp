@@ -281,16 +281,49 @@ async function handleWebSocketMessage(event) {
                  
             // Set Parameter Value
             case 'set_parameter_value':
-                UI.updateConsole(`Setting ${data.name}: to ${data.value}`);
-                await ParameterControl.updateParameter(data.name, data.value);
-                this.sendMessageToServer("parameter_set", { name: data.name, value: data.value });
+                UI.updateConsole(`Setting ${data.payload.name}: to ${data.payload.value}`);
+                const tween = parseFloat(data.payload.tween);
+                const newValue = parseFloat(data.payload.value);
+                if (tween > 0)
+                {
+                    const theChuck = WebChuckService.getChuckInstance();
+
+                    if (!theChuck) {
+                        UI.updateConsole('WebChucK needs to be running to set parameter values');
+                        break;
+                    }
+
+                    // Sending the message immediately so we don't wait for the tween.
+                    sendMessageToServer("set_parameter_value", { name: data.payload.name, value: data.payload.value });
+
+                    const startValue = parseFloat(await ParameterControl.getParameterValue(data.payload.name));
+                    let timePassed = 0;
+                    const slider = document.getElementById(`param-${data.payload.name}`)
+                    const valueDisplay = document.getElementById(`param-value-${data.payload.name}`)
+                    const interval = setInterval(async () => {
+                        const value = startValue + ((newValue - startValue) * (timePassed / (tween * 1000)));
+
+                        await ParameterControl.updateParameter(data.payload.name, undefined, value);
+                        slider.value = value;
+                        valueDisplay.textContent = (Math.round(value * 100)/100).toFixed(2);
+
+                        if (timePassed > tween * 1000) {
+                            clearInterval(interval);
+                        }
+                        timePassed += 15;
+                    }, 15);
+                }
+                else {
+                    await ParameterControl.updateParameter(data.payload.name, undefined, data.payload.value);
+                    sendMessageToServer("set_parameter_value", { name: data.payload.name, value: data.payload.value });
+                }
                 break;
 
             // Set Parameter Value
             case 'get_parameter_value':
                 UI.updateConsole(`Getting ${data.name}`);
-                const value = await ParameterControl.getParameter(data.name);
-                this.sendMessageToServer("parameter_get", { name: data.name, value });
+                const value = await ParameterControl.getParameterValue(data.payload.name);
+                sendMessageToServer("get_parameter_value", { name: data.payload.name, value });
                 break;
 
             // Play code from library

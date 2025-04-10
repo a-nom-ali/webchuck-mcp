@@ -2,6 +2,7 @@ import {Logger} from "../../utils/logger.js";
 import {McpServer, ResourceTemplate} from "@modelcontextprotocol/sdk/server/mcp.js";
 import {SessionsManager, Session} from "../sessionsManager.js";
 import {z} from "zod";
+import WebSocket from "ws";
 
 export class SessionTools {
     constructor(
@@ -21,12 +22,29 @@ export class SessionTools {
             {
                 sessionId: z.string().describe("Session ID for an existing WebChucK session")
             },
-            async (sessionId) => {
+            async ({sessionId}) => {
                 try {
-                    const response = await fetch(`https://localhost:${this.port}/api/session/${sessionId}`);
+                    if (this.sessionsManager)
+                    {
+                        const session = this.sessionsManager.get(sessionId);
+                        if (session) {
+                            return {
+                                content: [{
+                                    type: "text",
+                                    text: JSON.stringify({
+                                        sessionId,
+                                        status: session.status,
+                                        connected: session.ws.readyState === WebSocket.OPEN
+                                    })
+                                }]
+                            }
+                        }
+                    }
+
+                    const response = await fetch(`https://localhost:${this.port}/api/status/${sessionId}`);
 
                     if (!response.ok) {
-                        throw new Error(`HTTP error: ${response.status}`);
+                        throw new Error(`HTTP error: ${response.status}\n ${await response.text()}`);
                     }
 
                     const data = await response.json();

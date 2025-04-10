@@ -80,7 +80,7 @@ export class WebSocketHandler {
 
 // ==== WebChucK Preload Complete Handler ====
     private handlePreloadComplete(sessionId: string, data: any) {
-        const session = sessionsManager.get(sessionId);
+        const session = this.sessionsManager.get(sessionId);
         if (!session) {
             this.logger.warn(`Session ${sessionId} not found for preload complete notification`);
             return;
@@ -103,7 +103,7 @@ export class WebSocketHandler {
 
 // ==== WebChucK Execute Code Error Handler ====
     private handleExecuteCodeError(sessionId: string, data: any) {
-        const session = sessionsManager.get(sessionId);
+        const session = this.sessionsManager.get(sessionId);
         if (!session) {
             this.logger.warn(`Session ${sessionId} not found for execution error notification`);
             return;
@@ -125,7 +125,7 @@ export class WebSocketHandler {
 
 // ==== WebChucK Execute Code Error Handler ====
     private handlePreloadError(sessionId: string, data: any) {
-        const session = sessionsManager.get(sessionId);
+        const session = this.sessionsManager.get(sessionId);
         if (session)
             session.debugInfo.lastPreloadResult += JSON.stringify(data);
 
@@ -142,7 +142,7 @@ export class WebSocketHandler {
 
 // ==== WebChucK Session Rename Handler ====
     private handleRenameSession(sessionId: string, data: any) {
-        const session = sessionsManager.get(sessionId);
+        const session = this.sessionsManager.get(sessionId);
         if (!session) {
             this.logger.warn(`Session ${sessionId} not found for rename request`);
             return;
@@ -162,7 +162,7 @@ export class WebSocketHandler {
 
         // Set the name
         const name = data.name.trim();
-        const success = sessionsManager.setName(sessionId, name);
+        const success = this.sessionsManager.setName(sessionId, name);
 
         if (success) {
             this.logger.info(`Session ${sessionId} renamed to "${name}"`);
@@ -213,7 +213,7 @@ export class WebSocketHandler {
     private handleGetSetParameterValue(sessionId: string, data: any) {
         const session = this.sessionsManager.get(sessionId);
         if (!session) return;
-        sessionsManager.setParameter(sessionId, data.paramName, data.paramValue);
+        sessionsManager.setParameter(sessionId, data.name, data.value);
     }
 
 

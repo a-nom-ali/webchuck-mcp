@@ -10,7 +10,6 @@ export class Prompts {
     }
 
     private configurePrompts(): void {
-        this.prompts = new Prompts(this.mcpServer)
 
         this.mcpServer.prompt("webchuck_syntax_reminder",
             "A reminder prompt to help the AI chat agent stay on track.",

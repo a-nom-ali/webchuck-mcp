@@ -28,9 +28,9 @@ export class ParameterApiController {
     private setupRoutes(): void {
 
         // Get current parameter value
-        this.app.get('/api/parameter/:paramName', asyncHandler(async (req:any, res:any) => {
-            const {paramName} = req.params;
-            const {sessionId} = req.body;
+        this.app.get('/api/parameter/:name', asyncHandler(async (req:any, res:any) => {
+            const {name} = req.params;
+            const {sessionId} = req.query;
 
             const session = this.sessionsManager.get(sessionId);
             if (!session) {
@@ -44,7 +44,7 @@ export class ParameterApiController {
             session.ws.send(JSON.stringify({
                 type: 'get_parameter_value',
                 payload: {
-                    paramName,
+                    name: name,
                     sessionId
                 }
             }));
@@ -52,11 +52,11 @@ export class ParameterApiController {
             // Wait a moment for the client to respond
             await new Promise(resolve => setTimeout(resolve, 200));
 
-            const value = this.sessionsManager.getParameter(sessionId, paramName);
+            const value = this.sessionsManager.getParameter(sessionId, name);
 
             res.send({
                 success: value !== undefined,
-                name: paramName,
+                name: name,
                 value
             });
 
@@ -64,8 +64,8 @@ export class ParameterApiController {
         }));
 
         // Update current parameter value
-        this.app.put('/api/parameter/:paramName', asyncHandler(async (req:any, res:any) => {
-            const paramName = req.param;
+        this.app.put('/api/parameter/:name', asyncHandler(async (req:any, res:any) => {
+            const {name} = req.params;
             const {sessionId, paramValue, tween} = req.body;
 
             const session = this.sessionsManager.get(sessionId);
@@ -80,8 +80,8 @@ export class ParameterApiController {
             session.ws.send(JSON.stringify({
                 type: 'set_parameter_value',
                 payload: {
-                    paramName,
-                    paramValue,
+                    name: name,
+                    value: paramValue,
                     tween,
                     sessionId
                 }
@@ -90,15 +90,13 @@ export class ParameterApiController {
             // Wait a moment for the client to respond
             await new Promise(resolve => setTimeout(resolve, 200));
 
-            const value = this.sessionsManager.getParameter(sessionId, paramName);
+            const value = this.sessionsManager.getParameter(sessionId, name);
 
             res.send({
                 success: value === paramValue,
-                name: paramName,
+                name: name,
                 value: paramValue
             });
-
-            res.status(204).end();
         }));
 
     }

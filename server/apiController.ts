@@ -12,6 +12,7 @@ import {EXCLUDED_SAMPLE_KEYWORDS} from "./config.js";
 import {SamplesApiController} from "./API/samplesApiController.js";
 import {SnippetApiController} from "./API/snippetApiController.js";
 import {VolumeApiController} from "./API/volumeApiController.js";
+import {ParameterApiController} from "./API/parameterApiController.js";
 
 export class ApiController {
     constructor(
@@ -100,11 +101,16 @@ export class ApiController {
 
 // ==== API: Get session status ====
         this.app.get('/api/status/:sessionId', (req, res) => {
-            const {sessionId} = req.params;
+            const sessionId = req.params.sessionId;
+
+            if (!sessionId) {
+                return res.status(404).json('No sessionId supplied');
+            }
 
             const session = this.sessionsManager.get(sessionId);
+
             if (!session) {
-                return res.status(404).json({error: 'Session not found'});
+                return res.status(404).json(`Session not found: ${sessionId}.\n Available sessions are:\n${JSON.stringify(this.sessionsManager.keys())}`);
             }
 
             return res.status(200).json({
@@ -467,9 +473,10 @@ export class ApiController {
 
         // Add other endpoints...
 
-        const sampleApiController = new SamplesApiController(this.app, sessionsManager, this.webSocketHandler, this.audioService, this.logger, this.port, this.working_directory);
-        const snippetApiController = new SnippetApiController(this.app, sessionsManager, this.webSocketHandler, this.audioService, this.logger, this.port, this.working_directory);
-        const volumeApiController = new VolumeApiController(this.app, sessionsManager, this.webSocketHandler, this.audioService, this.logger, this.port, this.working_directory);
+        const parameterApiController = new ParameterApiController(this.app, this.sessionsManager, this.webSocketHandler, this.audioService, this.logger, this.port, this.working_directory);
+        const sampleApiController = new SamplesApiController(this.app, this.sessionsManager, this.webSocketHandler, this.audioService, this.logger, this.port, this.working_directory);
+        const snippetApiController = new SnippetApiController(this.app, this.sessionsManager, this.webSocketHandler, this.audioService, this.logger, this.port, this.working_directory);
+        const volumeApiController = new VolumeApiController(this.app, this.sessionsManager, this.webSocketHandler, this.audioService, this.logger, this.port, this.working_directory);
 
     }
 }
