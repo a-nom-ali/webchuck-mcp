@@ -302,6 +302,7 @@ async function handleWebSocketMessage(event) {
                     let timePassed = 0;
                     const slider = document.getElementById(`param-${data.payload.name}`)
                     const valueDisplay = document.getElementById(`param-value-${data.payload.name}`)
+
                     const interval = setInterval(async () => {
                         const value = startValue + ((newValue - startValue) * (timePassed / (tween * 1000)));
 
