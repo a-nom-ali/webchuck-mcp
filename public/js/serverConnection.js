@@ -378,7 +378,6 @@ async function handleWebSocketMessage(event) {
 }
 
 // --- Sending Messages ---
-
 export function sendMessageToServer(type, payload = {}) {
     if (serverSocket && serverSocket.readyState === WebSocket.OPEN) {
         try {
@@ -402,6 +401,7 @@ export function sendConsoleMessagesToServer() {
         sendMessageToServer('console_messages', { messages });
     }
 }
+
 // Consider calling sendConsoleMessagesToServer() periodically via setInterval if needed
 
 // Helper to send execution errors
@@ -500,68 +500,6 @@ export async function uploadFile(file) {
         console.error('Error uploading file:', error);
         UI.updateConsole(`Error uploading file: ${error.message}`);
         return false; // Indicate failure
-    }
-}
-
-
-// --- Session-Specific Debugging ---
-export async function fetchDebugExecution() {
-    if (!serverSocket || serverSocket.readyState !== WebSocket.OPEN || !sessionId) {
-        UI.updateConsole('Please connect to the server first to get debug info.');
-        return null;
-    }
-    try {
-        UI.updateConsole("Fetching execution debug data for current session...");
-        const response = await fetch(`}/api/debug/execution/${sessionId}`);
-        if (!response.ok) {
-            throw new Error(`Server responded with status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('Error loading execution debug data:', error);
-        UI.updateConsole(`Error loading debug info: ${error.message}`);
-        return null;
-    }
-}
-
-export async function fetchDebugPreload() {
-    if (!serverSocket || serverSocket.readyState !== WebSocket.OPEN || !sessionId) {
-        UI.updateConsole('Please connect to the server first to get debug info.');
-        return null;
-    }
-    try {
-        UI.updateConsole("Fetching preload debug data for current session...");
-        const response = await fetch(`}/api/debug/preload/${sessionId}`);
-        if (!response.ok) {
-            throw new Error(`Server responded with status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('Error loading preload debug data:', error);
-        UI.updateConsole(`Error loading debug info: ${error.message}`);
-        return null;
-    }
-}
-
-export async function fetchDebugSessions() {
-    if (!serverSocket || serverSocket.readyState !== WebSocket.OPEN) {
-        UI.updateConsole('Please connect to the server first to get sessions info.');
-        return null;
-    }
-    try {
-        UI.updateConsole("Fetching sessions debug data...");
-        const response = await fetch(`}/api/debug/sessions`);
-        if (!response.ok) {
-            throw new Error(`Server responded with status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('Error loading sessions debug data:', error);
-        UI.updateConsole(`Error loading sessions info: ${error.message}`);
-        return null;
     }
 }
 
