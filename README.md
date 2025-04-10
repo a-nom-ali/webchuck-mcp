@@ -2,7 +2,7 @@
 
 <div align="center">
   
-![WebChucK MCP Logo](images/logo.png)
+![WebChucK MCP Logo](images/logo-small.png)
 
 _A browser-based ChucK audio programming environment with AI assistance through Model Context Protocol_
 
