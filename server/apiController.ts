@@ -67,6 +67,51 @@ export class ApiController {
             }
         });
 
+// ==== API: Execute ChucK code ====
+        this.app.post('/api/patch', async (req, res) => {
+            try {
+                const {code, fromLine, toLine, sessionId} = req.body;
+
+                if (!code) {
+                    return res.status(400).json({error: 'No ChucK code provided'});
+                }
+
+                const session = this.sessionsManager.get(sessionId);
+                if (!session) {
+                    return res.status(404).json({error: 'Session not found'});
+                }
+
+                if (session.ws.readyState !== WebSocket.OPEN) {
+                    return res.status(400).json({error: 'WebChucK client not connected'});
+                }
+
+                // Store the active code
+                if (session.activeCode) {
+                    let currentCode = session.activeCode.split("\n");
+                    let precedingChunk = currentCode.slice(0, fromLine - 2);
+                    let remainingChunk = currentCode.slice(toLine - 1);
+                    session.activeCode = `${precedingChunk.join("\n")}\n${code.trim("\n").split("\n").join("\n")}\n${remainingChunk.join("\n")}`;
+                }
+
+                session.status = 'executing';
+
+                // Send code to WebChucK client
+                session.ws.send(JSON.stringify({
+                    type: 'execute_patch',
+                    code: code
+                }));
+
+                return res.status(200).json({
+                    message: 'Code execution started',
+                    sessionId: sessionId
+                });
+
+            } catch (err) {
+                this.logger.error('Error executing ChucK code:', err);
+                return res.status(500).json({error: 'Internal server error'});
+            }
+        });
+
 // ==== API: Stop ChucK execution ====
         this.app.post('/api/stop', async (req, res) => {
             try {

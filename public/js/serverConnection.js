@@ -181,7 +181,7 @@ export function disconnectFromServer() {
 
 // Sanitize incoming 'execute_code' messages (from original code)
 function parseExecuteCodeMessage(data) {
-    if (data.type !== 'execute_code' || typeof data.code !== 'string') {
+    if (data.type !== 'execute_code' && data.type !== 'execute_patch'|| typeof data.code !== 'string') {
         return data; // Return as-is if not relevant type or code isn't string
     }
     // Check if it looks like stringified JSON containing a `code` property
@@ -208,7 +208,7 @@ async function handleWebSocketMessage(event) {
         console.log("WebSocket message received (raw):", data);
 
         // Apply sanitization/parsing if needed (e.g., for execute_code)
-        if (data.type === 'execute_code') {
+        if (data.type === 'execute_code' || data.type === 'execute_patch') {
              data = parseExecuteCodeMessage(data);
              console.log("Message after parseExecuteCodeMessage:", data);
         }
@@ -237,6 +237,29 @@ async function handleWebSocketMessage(event) {
                 sendConsoleMessagesToServer();
                 // Send execution result *back to server*? (Original didn't seem to)
                  if (!execSuccess) {
+                     sendExecutionErrorToServer("Failed during WebChuckService.runCode execution.");
+                 }
+                break;
+
+            case 'execute_patch':
+                UI.updateConsole(`Executing patch from server...`);
+                // Set code in editor for user visibility
+                if (typeof data.code === 'string') {
+                     let currentCode = UI.getCodeEditorValue().split("\n");
+                     let precedingChunk = currentCode.slice(0, data.fromLine - 2);
+                     let remainingChunk = currentCode.slice(data.toLine - 1);
+                     let code = `${precedingChunk.join("\n")}\n${code.trim("\n").split("\n").join("\n")}\n${remainingChunk.join("\n")}`;
+                     UI.setCodeEditorValue(code);
+                     data.code = code;
+                } else {
+                    UI.updateConsole("Received non-string code from server.");
+                    UI.setCodeEditorValue(JSON.stringify(data.code, null, 2)); // Display JSON if not string
+                }
+                const shredId = await WebChuckService.runCode(data.code);
+                // Send captured messages back after execution attempt
+                sendConsoleMessagesToServer();
+                // Send execution result *back to server*? (Original didn't seem to)
+                 if (!shredId) {
                      sendExecutionErrorToServer("Failed during WebChuckService.runCode execution.");
                  }
                 break;

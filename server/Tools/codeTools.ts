@@ -80,6 +80,54 @@ export class CodeTools {
             }
         );
 
+        // ==== Patch and Execute ChucK Code Tool ====
+        this.mcpServer.tool("executePatch",
+            "This handy debugging tool allows you to target specific ranges of current code to be patched when debugging ChucK code, then executes the updated ChucK code in a WebChucK session.",
+            {
+                code: z.string().describe("The ChucK code patch to execute - MUST follow ChucK language syntax - no C or C++ syntax!"),
+                fromLine: z.number().describe("Int value of the starting line of the code to be replaced by the patch"),
+                toLine: z.number().describe("Int value of the last line of the code to be replaced by the patch"),
+                sessionId: z.string().describe("Session ID for an existing WebChucK session - obtain this from getSessions")
+            },
+            async ({code, fromLine, toLine, sessionId}) => {
+                try {
+
+                    const response = await fetch(`https://localhost:${this.port}/api/patch`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            // Just pass the code directly, don't wrap it further
+                            code,
+                            fromLine,
+                            toLine,
+                            sessionId
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    return {
+                        content: [{
+                            type: "text",
+                            text: data.message || "Execution started"
+                        }]
+                    };
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `Error executing ChucK code patch: ${errorMessage}`
+                        }]
+                    };
+                }
+            }
+        );
+
 
 // ==== Stop ChucK Code Tool ====
         this.mcpServer.tool("stopChucK",
