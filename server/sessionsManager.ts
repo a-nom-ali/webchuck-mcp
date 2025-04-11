@@ -127,6 +127,11 @@ export class SessionsManager {
 
         return data
     }
+
+    getAllParameters(sessionId: any) {
+        const session = this.get(sessionId);
+        return session?.parameters;
+    }
 }
 
 // Then use it throughout your code
