@@ -5,6 +5,10 @@ import {AudioService} from "../audioService.js";
 import {z} from "zod";
 import fs from "fs";
 import path from "path";
+import {dbAll, dbGet, dbRun} from "../DB/dbManager.js";
+import {promisify} from "util";
+const statAsync = promisify(fs.stat);
+const readdirAsync = promisify(fs.readdir);
 
 export class SampleTools {
     constructor(
@@ -23,8 +27,7 @@ export class SampleTools {
 // ==== List Audio File Keywords Tool ====
         this.mcpServer.tool("listAvailableAudioFileKeywords",
             "Lists all available audio file keywords that can be used to search for specific sample families. Use this first to identify sample families available for listAudioFiles or preloadSamples.",
-            {
-            },
+            {},
             async () => {
                 try {
                     let apiUrl = `https://localhost:${this.port}/api/search/keywords`;
@@ -61,7 +64,7 @@ export class SampleTools {
             {
                 query: z.string().optional().describe("Optional search query to filter audio files")
             },
-            async ({ query }) => {
+            async ({query}) => {
                 try {
                     let audioFiles: string[] = [];
                     let apiUrl = `https://localhost:${this.port}/api/audio`;
@@ -213,6 +216,332 @@ export class SampleTools {
                         content: [{
                             type: "text",
                             text: `Error fetching debug data : ${errorMessage}`
+                        }]
+                    };
+                }
+            });
+
+        // Get all samples with optional filtering
+        this.mcpServer.tool("listSamples",
+            "Get all samples with optional filtering",
+            {
+                volume_id: z.number().describe("Id of the samples volume"),
+                tag: z.string().describe("Tag to search on"),
+                search: z.string().describe("Search query"),
+                limit: z.number().describe("Search result page size"),
+                offset: z.number().describe("Search result page offset"),
+            },
+            async ({volume_id, tag, search, limit = 100, offset = 0}) => {
+                try {
+
+                    let sql = 'SELECT s.* FROM Samples s';
+                    const params = [];
+
+                    const conditions = [];
+
+                    if (volume_id) {
+                        conditions.push('s.volume_id = ?');
+                        params.push(volume_id);
+                    }
+
+                    if (tag) {
+                        sql += ' JOIN SampleTags t ON s.id = t.sample_id';
+                        conditions.push('t.tag = ?');
+                        params.push(tag);
+                    }
+
+                    if (search) {
+                        conditions.push('(s.relative_path LIKE ? OR s.filename LIKE ?)');
+                        params.push(`%${search}%`, `%${search}%`);
+                    }
+
+                    if (conditions.length > 0) {
+                        sql += ' WHERE ' + conditions.join(' AND ');
+                    }
+
+                    sql += ' ORDER BY s.relative_path LIMIT ? OFFSET ?';
+                    params.push(limit, offset * limit);
+
+                    const samples: any = await dbAll(sql, params);
+
+                    // Get volume information for each sample
+                    for (const sample of samples) {
+                        const volume: any = await dbGet(
+                            'SELECT name FROM Volumes WHERE id = ?',
+                            [sample.volume_id]
+                        );
+
+                        if (volume) {
+                            sample.volume_name = volume.name;
+                        }
+
+                        const tags: any = await dbAll(
+                            'SELECT tag FROM SampleTags WHERE sample_id = ?',
+                            [sample.id]
+                        );
+
+                        sample.tags = tags.map((t: { tag: string }) => t.tag);
+                    }
+
+                    // Get total count for pagination
+                    let countSql = 'SELECT COUNT(*) as count FROM Samples s';
+
+                    if (tag) {
+                        countSql += ' JOIN SampleTags t ON s.id = t.sample_id';
+                    }
+
+                    if (conditions.length > 0) {
+                        countSql += ' WHERE ' + conditions.join(' AND ');
+                    }
+
+                    const countParams = params.slice(0, params.length - 2); // Remove limit and offset
+                    const totalCount: any = await dbGet(countSql, countParams);
+
+                    return {
+                        content: [{
+                            type: "text",
+                            text: JSON.stringify({
+                                samples,
+                                pagination: {
+                                    total: totalCount.count,
+                                    limit,
+                                    offset
+                                }
+                            })
+                        }]
+                    };
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    this.logger.error(errorMessage)
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `Error fetching debug data : ${errorMessage}`
+                        }]
+                    };
+                }
+            });
+
+// Get a specific sample
+        this.mcpServer.tool("getSampleInfo",
+            "Get a specific sample's information",
+            {
+                id: z.number().describe("Id of the samples information to fetch"),
+            },
+            async ({id}) => {
+                try {
+                    const sample: any = await dbGet('SELECT * FROM Samples WHERE id = ?', [id]);
+
+                    if (!sample) {
+                        throw {error: 'Sample not found'};
+                    }
+
+                    // Get volume information
+                    const volume: any = await dbGet(
+                        'SELECT name, physical_path FROM Volumes WHERE id = ?',
+                        [sample.volume_id]
+                    );
+
+                    if (volume) {
+                        sample.volume_name = volume.name;
+                        sample.full_path = path.join(volume.physical_path, sample.relative_path);
+                    }
+
+                    // Get tags
+                    const tags: any = await dbAll(
+                        'SELECT tag FROM SampleTags WHERE sample_id = ?',
+                        [id]
+                    );
+
+                    sample.tags = tags.map((t: { tag: string }) => t.tag);
+
+                    return {
+                        content: [{
+                            type: "text",
+                            text: JSON.stringify(sample)
+                        }]
+                    };
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    this.logger.error(errorMessage)
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `Error fetching sample info : ${errorMessage}`
+                        }]
+                    };
+                }
+            });
+
+// Update a sample
+        this.mcpServer.tool("updateSampleTags",
+            "Update a sample's tags",
+            {
+                id: z.number().describe("Id of the sample"),
+                tags: z.array(
+                    z.string().describe("Tags"),
+                )
+            },
+            async ({id, tags}) => {
+                try {
+                    // Check if sample exists
+                    const sample = await dbGet('SELECT * FROM Samples WHERE id = ?', [id]);
+                    if (!sample) {
+                        throw {error: 'Sample not found'};
+                    }
+
+                    // Update tags if provided
+                    if (Array.isArray(tags)) {
+                        // Delete all existing tags
+                        await dbRun('DELETE FROM SampleTags WHERE sample_id = ?', [id]);
+
+                        // Add new tags
+                        for (const tag of tags) {
+                            await dbRun(
+                                'INSERT INTO SampleTags (sample_id, tag) VALUES (?, ?)',
+                                [id, tag]
+                            );
+                        }
+                    }
+
+                    // Update last accessed timestamp
+                    await dbRun(
+                        'UPDATE Samples SET last_accessed = ? WHERE id = ?',
+                        [new Date().toISOString(), id]
+                    );
+
+                    const updatedSample: any = await dbGet('SELECT * FROM Samples WHERE id = ?', [id]);
+                    const updatedTags: any = await dbAll('SELECT tag FROM SampleTags WHERE sample_id = ?', [id]);
+                    updatedSample.tags = updatedTags.map((t: { tag: string }) => t.tag);
+
+                    return {
+                        content: [{
+                            type: "text",
+                            text: JSON.stringify(updatedSample)
+                        }]
+                    };
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    this.logger.error(errorMessage)
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `Error updating sample tags : ${errorMessage}`
+                        }]
+                    };
+                }
+            });
+
+// Delete a sample
+        this.mcpServer.tool("Sample",
+            "Delete a sample",
+            {
+                id: z.number().describe("Id of the sample to delete"),
+            },
+            async ({id}) => {
+                try {
+                    // Check if sample exists
+                    const sample = await dbGet('SELECT * FROM Samples WHERE id = ?', [id]);
+                    if (!sample) {
+                        throw {error: 'Sample not found'};
+                    }
+
+                    // Delete tags first (due to foreign key constraint)
+                    await dbRun('DELETE FROM SampleTags WHERE sample_id = ?', [id]);
+
+                    // Delete the sample
+                    await dbRun('DELETE FROM Samples WHERE id = ?', [id]);
+
+                    return {
+                        content: [{
+                            type: "text",
+                            text: JSON.stringify({success: true})
+                        }]
+                    };
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    this.logger.error(errorMessage)
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `Error deleting sample : ${errorMessage}`
+                        }]
+                    };
+                }
+            });
+
+        this.mcpServer.tool("loadSample",
+            "Load a sample file into a session and returns the path",
+            {
+                id: z.number().describe("Id of the samples"),
+                sessionId: z.string().describe("Id of the session to load the sample into"),
+            },
+            async ({id, sessionId}) => {
+                try {
+                    const sample: any = await dbGet(
+                        `SELECT s.*, v.physical_path AS volume_path
+                         FROM Samples s
+                                  JOIN Volumes v ON s.volume_id = v.id
+                         WHERE s.id = ?`,
+                        [id]
+                    );
+
+                    if (!sample) {
+                        throw {error: 'Sample not found'};
+                    }
+
+                    const filePath = path.join(sample.volume_path, sample.relative_path);
+
+                    try {
+                        await statAsync(filePath);
+                    } catch (err) {
+                        throw {error: 'Sample file not found on disk'};
+                    }
+
+                    // Update last accessed timestamp
+                    await dbRun(
+                        'UPDATE Samples SET last_accessed = ? WHERE id = ?',
+                        [new Date().toISOString(), id]
+                    );
+
+                    // TODO: Socket message to load the file
+                    const session = this.sessionsManager.get(sessionId);
+                    if (!session) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: JSON.stringify({
+                                        success: false,
+                                        error: `Error: Session ${sessionId} not found`
+                                    })
+                                }
+                            ]
+                        };
+                    }
+
+                    // Send a message to the client to play from library
+                    session.ws.send(JSON.stringify({
+                        type: 'preload_samples',
+                        samples: [filePath]
+                    }));
+
+                    return {
+                        content: [{
+                            type: "text",
+                            text: JSON.stringify({
+                                success: true,
+                                filePath
+                            })
+                        }]
+                    };
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    this.logger.error(errorMessage)
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `Error loading sample : ${errorMessage}`
                         }]
                     };
                 }
