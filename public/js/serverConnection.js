@@ -2,7 +2,7 @@
 import * as UI from './ui.js';
 import * as WebChuckService from './webchuckService.js';
 import * as LibraryService from './libraryService.js';
-import { WS_URL, SERVER_URL } from './config.js';
+import {WS_URL, SERVER_URL} from './config.js';
 import ParameterControl from "./parameterControl.js";
 
 let serverSocket = null;
@@ -15,13 +15,14 @@ const MAX_RECONNECT_DELAY_MS = 30000; // Max delay 30 seconds
 
 // --- WebSocket Setup ---
 let firstConnect = true;
+
 function connectWebSocket() {
     if (serverSocket && (serverSocket.readyState === WebSocket.OPEN || serverSocket.readyState === WebSocket.CONNECTING)) {
         UI.updateConsole('WebSocket already open or connecting.');
         return;
     }
 
-     // Clear any previous reconnect interval
+    // Clear any previous reconnect interval
     if (reconnectInterval) {
         clearTimeout(reconnectInterval);
         reconnectInterval = null;
@@ -39,8 +40,7 @@ function connectWebSocket() {
 
         UI.updateConsole('WebSocket connection established.');
         UI.enableServerControls(true);
-        if (firstConnect)
-        {
+        if (firstConnect) {
             firstConnect = false;
             const result = LibraryService.getSystemSnippet("hello-world");
             const snippet =
@@ -103,7 +103,7 @@ function connectWebSocket() {
         // --- End Auto-reconnect Logic ---
     };
 
-     serverSocket.onerror = (error) => {
+    serverSocket.onerror = (error) => {
         console.error('WebSocket error:', error);
         UI.updateConsole(`WebSocket error: ${error?.message || 'Unknown error'}. Check console.`);
         UI.setConnectionStatus('<span class="red">Connection Error</span>');
@@ -120,12 +120,15 @@ function connectWebSocket() {
 
         // Close might not fire after error, ensure cleanup and attempt reconnect
         if (serverSocket && serverSocket.readyState !== WebSocket.OPEN && serverSocket.readyState !== WebSocket.CONNECTING) {
-             try { serverSocket.close(); } catch(e){} // Force close if possible
-             serverSocket = null;
-              // Trigger reconnect manually if not already scheduled by onclose
-              if (!reconnectInterval && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                 handleReconnectAttempt(); // Use a helper to avoid duplication
-             }
+            try {
+                serverSocket.close();
+            } catch (e) {
+            } // Force close if possible
+            serverSocket = null;
+            // Trigger reconnect manually if not already scheduled by onclose
+            if (!reconnectInterval && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                handleReconnectAttempt(); // Use a helper to avoid duplication
+            }
         }
     };
 }
@@ -172,8 +175,9 @@ function disconnectWebSocket() {
 export function connectToServer() {
     connectWebSocket();
 }
+
 export function disconnectFromServer() {
-     disconnectWebSocket();
+    disconnectWebSocket();
 }
 
 
@@ -181,7 +185,7 @@ export function disconnectFromServer() {
 
 // Sanitize incoming 'execute_code' messages (from original code)
 function parseExecuteCodeMessage(data) {
-    if (data.type !== 'execute_code' && data.type !== 'execute_patch'|| typeof data.code !== 'string') {
+    if (data.type !== 'execute_code' && data.type !== 'execute_patch' || typeof data.code !== 'string') {
         return data; // Return as-is if not relevant type or code isn't string
     }
     // Check if it looks like stringified JSON containing a `code` property
@@ -192,7 +196,7 @@ function parseExecuteCodeMessage(data) {
             if (parsed && typeof parsed.code === 'string') {
                 console.log("Parsed nested code string from execute_code message.");
                 // Return a new object with the correctly extracted code
-                return { ...data, code: parsed.code };
+                return {...data, code: parsed.code};
             }
         } catch (e) {
             console.warn("Received execute_code with stringified JSON, but failed to parse. Using as-is.", e);
@@ -209,8 +213,8 @@ async function handleWebSocketMessage(event) {
 
         // Apply sanitization/parsing if needed (e.g., for execute_code)
         if (data.type === 'execute_code' || data.type === 'execute_patch') {
-             data = parseExecuteCodeMessage(data);
-             console.log("Message after parseExecuteCodeMessage:", data);
+            data = parseExecuteCodeMessage(data);
+            console.log("Message after parseExecuteCodeMessage:", data);
         }
 
 
@@ -219,15 +223,15 @@ async function handleWebSocketMessage(event) {
                 sessionId = data.sessionId;
                 UI.setConnectionStatus(`<span class="green" style="font-size: 0.6em;">${sessionId}</span>`);
                 UI.updateConsole(`Session created: ${sessionId}`);
-                 // Enable server interactions now that we have a session
-                 UI.enableServerControls(true);
+                // Enable server interactions now that we have a session
+                UI.enableServerControls(true);
                 break;
 
             case 'execute_code':
                 UI.updateConsole(`Executing code from server...`);
                 // Set code in editor for user visibility
                 if (typeof data.code === 'string') {
-                     UI.setCodeEditorValue(data.code);
+                    UI.setCodeEditorValue(data.code);
                 } else {
                     UI.updateConsole("Received non-string code from server.");
                     UI.setCodeEditorValue(JSON.stringify(data.code, null, 2)); // Display JSON if not string
@@ -236,21 +240,21 @@ async function handleWebSocketMessage(event) {
                 // Send captured messages back after execution attempt
                 sendConsoleMessagesToServer();
                 // Send execution result *back to server*? (Original didn't seem to)
-                 if (!execSuccess) {
-                     sendExecutionErrorToServer("Failed during WebChuckService.runCode execution.");
-                 }
+                if (!execSuccess) {
+                    sendExecutionErrorToServer("Failed during WebChuckService.runCode execution.");
+                }
                 break;
 
             case 'execute_patch':
                 UI.updateConsole(`Executing patch from server...`);
                 // Set code in editor for user visibility
                 if (typeof data.code === 'string') {
-                     let currentCode = UI.getCodeEditorValue().split("\n");
-                     let precedingChunk = currentCode.slice(0, data.fromLine - 2);
-                     let remainingChunk = currentCode.slice(data.toLine - 1);
-                     let code = `${precedingChunk.join("\n")}\n${code.trim("\n").split("\n").join("\n")}\n${remainingChunk.join("\n")}`;
-                     UI.setCodeEditorValue(code);
-                     data.code = code;
+                    let currentCode = UI.getCodeEditorValue().split("\n");
+                    let precedingChunk = currentCode.slice(0, data.fromLine - 1);
+                    let remainingChunk = currentCode.slice(data.toLine);
+                    let code = `${precedingChunk.join("\n")}\n${data.code.trim("\n").split("\n").join("\n")}\n${remainingChunk.join("\n")}`;
+                    UI.setCodeEditorValue(code);
+                    data.code = code;
                 } else {
                     UI.updateConsole("Received non-string code from server.");
                     UI.setCodeEditorValue(JSON.stringify(data.code, null, 2)); // Display JSON if not string
@@ -259,9 +263,9 @@ async function handleWebSocketMessage(event) {
                 // Send captured messages back after execution attempt
                 sendConsoleMessagesToServer();
                 // Send execution result *back to server*? (Original didn't seem to)
-                 if (!shredId) {
-                     sendExecutionErrorToServer("Failed during WebChuckService.runCode execution.");
-                 }
+                if (!shredId) {
+                    sendExecutionErrorToServer("Failed during WebChuckService.runCode execution.");
+                }
                 break;
 
             case 'stop_execution':
@@ -280,13 +284,13 @@ async function handleWebSocketMessage(event) {
                     UI.updateConsole(`Received request to preload: ${data.samples.join(', ')}`);
 
                     // Call preload function
-                     const result = await WebChuckService.preloadSamplesByName(data.samples);
+                    const result = await WebChuckService.preloadSamplesByName(data.samples);
 
-                     // Send result back to server
+                    // Send result back to server
                     sendMessageToServer(result.success ? 'preload_complete' : 'preload_error', result);
                 } else {
-                     UI.updateConsole("Invalid 'preload_samples' message received.", data);
-                     sendMessageToServer('preload_error', { error: 'Invalid samples data received by client.' });
+                    UI.updateConsole("Invalid 'preload_samples' message received.", data);
+                    sendMessageToServer('preload_error', {error: 'Invalid samples data received by client.'});
                 }
                 break;
 
@@ -303,88 +307,122 @@ async function handleWebSocketMessage(event) {
             case 'rename_session_error':
                 UI.updateConsole(`Error renaming session: ${data.error}`);
                 break;
-                 
-            // Set Parameter Value
-            case 'set_parameter_value':
-                UI.updateConsole(`Setting ${data.payload.name}: to ${data.payload.value}`);
-                const tween = parseFloat(data.payload.tween);
-                const newValue = parseFloat(data.payload.value);
-                if (tween > 0)
-                {
-                    const theChuck = WebChuckService.getChuckInstance();
 
-                    if (!theChuck) {
-                        UI.updateConsole('WebChucK needs to be running to set parameter values');
-                        break;
+            case 'get_all_parameter_values':
+            case 'get_parameter_value': {
+                let parameters = [];
+                if (!data.payload || Array.isArray(data.payload) && data.payload.length === 0) {
+                    UI.updateConsole("Getting all parameters");
+                    parameters = await ParameterControl.getParameterValue()
+                    console.log(parameters)
+                }
+                else
+                if (Array.isArray(data.payload)) {
+                    for (let i = 0; i < data.payload.length; i++) {
+                        const parameter = data.payload[i];
+                        UI.updateConsole(`Getting ${parameter}`);
+                        const value = await ParameterControl.getParameterValue(parameter);
+                        parameters.push({
+                            name: parameter.name,
+                            value: value.value
+                        })
                     }
+                }
 
-                    // Sending the message immediately so we don't wait for the tween.
-                    sendMessageToServer("set_parameter_value", { name: data.payload.name, value: data.payload.value });
+                if (parameters.length > 0) {
+                    console.log("PARAMETERS");
+                    console.log(parameters);
+                    sendMessageToServer("get_parameter_value_feedback", parameters);
+                }
+                break;
+            }
 
-                    const startValue = parseFloat(await ParameterControl.getParameterValue(data.payload.name));
-                    let timePassed = 0;
-                    const slider = document.getElementById(`param-${data.payload.name}`)
-                    const valueDisplay = document.getElementById(`param-value-${data.payload.name}`)
-
-                    const interval = setInterval(async () => {
-                        const value = startValue + ((newValue - startValue) * (timePassed / (tween * 1000)));
-
-                        await ParameterControl.updateParameter(data.payload.name, undefined, value);
-                        slider.value = value;
-                        valueDisplay.textContent = (Math.round(value * 100)/100).toFixed(2);
-
-                        if (timePassed > tween * 1000) {
-                            clearInterval(interval);
+            case 'set_parameter_value': {
+                let parameters = [];
+                if (Array.isArray(data.payload)) {
+                    for (let i = 0; i < data.payload.length; i++) {
+                        const parameter = data.payload[i];
+                        UI.updateConsole(`Setting ${parameter.name}: to ${parameter.value}`);
+                        const tween = parseFloat(parameter.tween);
+                        const newValue = parseFloat(parameter.value);
+                        parameters.push({
+                            name: parameter.name,
+                            value: parameter.value
+                        });
+                        if (tween > 0) {
+                            const theChuck = WebChuckService.getChuckInstance();
+                            if (!theChuck) {
+                                UI.updateConsole('WebChucK needs to be running to set parameter values');
+                                return;
+                            }
+                            const startValue = parseFloat(await ParameterControl.getParameterValue(parameter.name));
+                            let timePassed = 0;
+                            const slider = document.getElementById(`param-${parameter.name}`);
+                            const valueDisplay = document.getElementById(`param-value-${parameter.name}`);
+                            const interval = setInterval(async () => {
+                                const value = startValue + ((newValue - startValue) * (timePassed / (tween * 1000)));
+                                await ParameterControl.updateParameter(parameter.name, undefined, value);
+                                slider.value = value;
+                                valueDisplay.textContent = (Math.round(value * 100) / 100).toFixed(2);
+                                if (timePassed > tween * 1000) {
+                                    clearInterval(interval);
+                                }
+                                timePassed += 15;
+                            }, 15);
+                        } else {
+                            await ParameterControl.updateParameter(parameter.name, undefined, parameter.value);
                         }
-                        timePassed += 15;
-                    }, 15);
+                    }
                 }
-                else {
-                    await ParameterControl.updateParameter(data.payload.name, undefined, data.payload.value);
-                    sendMessageToServer("set_parameter_value", { name: data.payload.name, value: data.payload.value });
-                }
-                break;
 
-            // Set Parameter Value
-            case 'get_parameter_value':
-                UI.updateConsole(`Getting ${data.name}`);
-                const value = await ParameterControl.getParameterValue(data.payload.name);
-                sendMessageToServer("get_parameter_value", { name: data.payload.name, value });
+                if (parameters.length > 0) {
+                    sendMessageToServer("set_parameter_value_feedback", parameters);
+                }
                 break;
+            }
+
+            // Play code from library
+            case 'get_code_from_editor': {
+                sendMessageToServer("set_code_from_editor", { code : UI.getCodeEditorValue().toString() });
+                break;
+            }
 
             // Play code from library
             case 'play_from_library':
-            if (!data.name) {
+                if (!data.name) {
                     UI.updateConsole('Error: No snippet name provided for play_from_library');
                     break;
                 }
-                
+
                 UI.updateConsole(`Server requested to play snippet: ${data.name}`);
                 const result = LibraryService.loadSnippet(data.name);
-                
+
                 if (!result.success) {
                     UI.updateConsole(`Error: ${result.message}`);
-                    sendMessageToServer('play_from_library_error', { name: data.name, error: result.message });
+                    sendMessageToServer('play_from_library_error', {name: data.name, error: result.message});
                     break;
                 }
-                
+
                 // Set the code in the editor
                 UI.setCodeEditorValue(result.code);
-                
+
                 // Run the code
                 WebChuckService.runCode(result.code)
                     .then(success => {
                         if (success) {
                             UI.updateConsole(`Successfully playing snippet: ${data.name}`);
-                            sendMessageToServer('play_from_library_success', { name: data.name });
+                            sendMessageToServer('play_from_library_success', {name: data.name});
                         } else {
                             UI.updateConsole(`Failed to play snippet: ${data.name}`);
-                            sendMessageToServer('play_from_library_error', { name: data.name, error: 'Execution failed' });
+                            sendMessageToServer('play_from_library_error', {
+                                name: data.name,
+                                error: 'Execution failed'
+                            });
                         }
                     })
                     .catch(error => {
                         UI.updateConsole(`Error playing snippet: ${error.message}`);
-                        sendMessageToServer('play_from_library_error', { name: data.name, error: error.message });
+                        sendMessageToServer('play_from_library_error', {name: data.name, error: error.message});
                     });
                 break;
 
@@ -396,7 +434,7 @@ async function handleWebSocketMessage(event) {
         console.error('Error parsing or handling WebSocket message:', error);
         UI.updateConsole(`Error processing message: ${error.message}`);
         // Send error back to server?
-        sendMessageToServer('error', { message: `Client error processing message: ${error.message}` });
+        sendMessageToServer('error', {message: `Client error processing message: ${error.message}`});
     }
 }
 
@@ -404,7 +442,7 @@ async function handleWebSocketMessage(event) {
 export function sendMessageToServer(type, payload = {}) {
     if (serverSocket && serverSocket.readyState === WebSocket.OPEN) {
         try {
-            serverSocket.send(JSON.stringify({ type, sessionId, ...payload })); // Include sessionId automatically
+            serverSocket.send(JSON.stringify({type, sessionId, ...payload})); // Include sessionId automatically
             return true;
         } catch (error) {
             console.error(`Error sending WebSocket message type ${type}:`, error);
@@ -421,7 +459,7 @@ export function sendMessageToServer(type, payload = {}) {
 export function sendConsoleMessagesToServer() {
     const messages = WebChuckService.getAndClearCapturedMessages();
     if (messages.length > 0) {
-        sendMessageToServer('console_messages', { messages });
+        sendMessageToServer('console_messages', {messages});
     }
 }
 
@@ -436,8 +474,9 @@ export function sendExecutionErrorToServer(errorMessage) {
                 UI.updateConsole(`Error running system snippet: ${error.message}`);
             });
     }
-     sendMessageToServer('execute_code_error', { error: errorMessage });
+    sendMessageToServer('execute_code_error', {error: errorMessage});
 }
+
 // Helper to send preload errors explicitly if needed
 export function sendPreloadErrorToServer(errorMessage) {
     const result = LibraryService.getSystemSnippet("error");
@@ -447,35 +486,35 @@ export function sendPreloadErrorToServer(errorMessage) {
                 UI.updateConsole(`Error running system snippet: ${error.message}`);
             });
     }
-    sendMessageToServer('preload_error', { error: errorMessage });
+    sendMessageToServer('preload_error', {error: errorMessage});
 }
 
 // --- API Interaction ---
 // Example: Fetching samples list via API
 export async function fetchSamplesList(searchQuery = '') {
-     if (!serverSocket || serverSocket.readyState !== WebSocket.OPEN) {
+    if (!serverSocket || serverSocket.readyState !== WebSocket.OPEN) {
         UI.updateConsole('Please connect to the server first to load samples.');
         return null; // Indicate failure
     }
     try {
         UI.updateConsole(searchQuery ? `Searching for samples matching "${searchQuery}"...` : "Fetching all samples...");
-        
+
         let apiUrl = `/api/audio`;
         if (searchQuery) {
             apiUrl += `?q=${encodeURIComponent(searchQuery)}`;
         }
-        
+
         const response = await fetch(apiUrl);
         if (!response.ok) {
             throw new Error(`Server responded with status: ${response.status}`);
         }
         const data = await response.json();
-         
+
         const filesFound = data.files?.length || 0;
-        UI.updateConsole(searchQuery 
+        UI.updateConsole(searchQuery
             ? `Found ${filesFound} sample(s) matching "${searchQuery}"`
             : `Found ${filesFound} sample(s)`);
-            
+
         return data.files; // Return the list of relative paths
     } catch (error) {
         console.error('Error loading samples list:', error);
@@ -490,7 +529,7 @@ export async function uploadFile(file) {
         UI.updateConsole('No file selected for upload.');
         return false;
     }
-     if (!serverSocket || serverSocket.readyState !== WebSocket.OPEN) {
+    if (!serverSocket || serverSocket.readyState !== WebSocket.OPEN) {
         UI.updateConsole('Please connect to the server first to upload.');
         return false;
     }

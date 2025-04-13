@@ -1,6 +1,5 @@
 import {Logger} from "../../utils/logger.js";
 import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
-import {SessionsManager, Session} from "../sessionsManager.js";
 import {z} from "zod";
 import {dbRun, dbAll, dbGet} from "../DB/dbManager.js";
 import {promisify} from "util";
@@ -12,7 +11,6 @@ const readdirAsync = promisify(fs.readdir);
 export class VolumeTools {
     constructor(
         private mcpServer: McpServer,
-        private sessionsManager: SessionsManager,
         private logger: Logger
     ) {
         this.configureTools();
@@ -243,7 +241,7 @@ export class VolumeTools {
 
 // Delete a volume
         this.mcpServer.tool("deleteVolume",
-            "Delete a volume",
+            "Delete a volume. This will not delete the physical files.",
             {
                 id: z.number().describe("Id of the volume to delete")
             },
@@ -293,7 +291,7 @@ export class VolumeTools {
             });
 
 // Scan a volume to index samples
-        this.mcpServer.tool("deleteVolume",
+        this.mcpServer.tool("scanVolume",
             "Scan a volume to index samples",
             {
                 id: z.number().describe("Id of the volume to scan")

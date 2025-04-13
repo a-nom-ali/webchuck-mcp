@@ -3,8 +3,7 @@ import {McpServer, ResourceTemplate} from "@modelcontextprotocol/sdk/server/mcp.
 import {SessionsManager, Session} from "../sessionsManager.js";
 import {AudioService} from "../audioService.js";
 import {z} from "zod";
-import fs from "fs";
-import path from "path";
+import WebSocket from "ws";
 
 export class CodeTools {
     constructor(
@@ -171,60 +170,53 @@ export class CodeTools {
         this.mcpServer.tool(
             "getCodeFromEditor",
             "Retrieves the current code from the WebChucK editor",
-            {},  // No input parameters needed
-            async () => {
+            {
+                sessionId: z.string().describe("Session ID for an existing WebChucK session")
+            },
+            async ({sessionId}) => {
                 try {
-                    // Find active sessions
-                    const activeSessions = Array.from(this.sessionsManager.entries());
-                    if (activeSessions.length === 0) {
-                        return {
-                            content: [
-                                {
-                                    type: "text",
-                                    text: "No active WebChucK sessions found. Please connect to the WebChucK client first."
+                    let code = `No code available`;
+                    if (this.sessionsManager) {
+                        const session:Session | undefined = this.sessionsManager.get(sessionId);
+                        if (session) {
+                            if (session.ws.readyState === WebSocket.OPEN) {
+                                session.ws.send(JSON.stringify({
+                                    type: 'get_code_from_editor'
+                                }));
+
+                                await new Promise(resolve => setTimeout(resolve, 500));
+
+                                code = session.activeCode || "";
+
+                                if (!code && !code.trim()) {
+                                    code = "The editor is currently empty or no code has been executed yet.";
                                 }
-                            ]
-                        };
+                                else {
+                                    code = `Current code in the editor (Session ${session.name || sessionId}):\n\n\`\`\`chuck\n${code}\n\`\`\``
+                                }
+                            } else {
+                                code = `The WebChucK session is not currently connected. ${session.ws.readyState} ${JSON.stringify(session)}}`;
+                            }
+                        }
+                        else {
+                            code = "No such session found."
+                        }
                     }
+                    else {
+                        const response = await fetch(`https://localhost:${this.port}/api/snippet/editor/${sessionId}`);
 
-                    // Get the first active session or a named one if available
-                    const activeSession: [string, Session] = activeSessions.find(([_, session]) =>
-                        session.name && session.ws.readyState === WebSocket.OPEN
-                    ) || activeSessions[0];
+                        if (!response.ok) {
+                            throw new Error(`HTTP error: ${response.status}`);
+                        }
 
-                    const sessionId = activeSession[0];
-                    const session = activeSession[1];
-
-                    if (session.ws.readyState !== WebSocket.OPEN) {
-                        return {
-                            content: [
-                                {
-                                    type: "text",
-                                    text: "The WebChucK session is not currently connected."
-                                }
-                            ]
-                        };
-                    }
-
-                    // Get the active code from the session
-                    const code = session.activeCode || "";
-
-                    if (!code.trim()) {
-                        return {
-                            content: [
-                                {
-                                    type: "text",
-                                    text: "The editor is currently empty or no code has been executed yet."
-                                }
-                            ]
-                        };
+                        code = await response.text();
                     }
 
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Current code in the editor (Session ${session.name || sessionId}):\n\n\`\`\`chuck\n${code}\n\`\`\``
+                                text: code
                             }
                         ]
                     };
@@ -235,7 +227,7 @@ export class CodeTools {
                         content: [
                             {
                                 type: "text",
-                                text: `Error retrieving code: ${error instanceof Error ? error.message : "Unknown error"}`
+                                text: `Tool Error retrieving code: ${error instanceof Error ? error.message : "Unknown error"}`
                             }
                         ]
                     };

@@ -7,6 +7,7 @@ import {CombinedTools} from "./Tools/combinedTools.js";
 import {SampleTools} from "./Tools/sampleTools.js";
 import {SessionTools} from "./Tools/sessionTools.js";
 import {SnippetTools} from "./Tools/snippetTools.js";
+import {VolumeTools} from "./Tools/volumeTools.js";
 import {ExampleResource} from "./Resources/exampleResource.js";
 import {SampleResource} from "./Resources/sampleResource.js";
 import {Prompts} from "./Prompts/prompts.js";
@@ -19,7 +20,7 @@ export class McpServerConfig {
     private sampleTools!: SampleTools;
     private sessionTools!: SessionTools;
     private snippetTools!: SnippetTools;
-    // private volumeTools!: VolumeTools;
+    private volumeTools!: VolumeTools;
 
     private prompts!: Prompts;
 
@@ -41,13 +42,13 @@ export class McpServerConfig {
     }
 
     private configureTools(): void {
+        this.sessionTools = new SessionTools(this.mcpServer, this.sessionsManager, this.logger, this.port, this.working_directory);
         this.codeTools = new CodeTools(this.mcpServer, this.sessionsManager, this.audioService, this.logger, this.port, this.working_directory);
         this.combinedTools = new CombinedTools(this.mcpServer, this.port);
-        this.parameterTools = new ParameterTools(this.mcpServer, this.sessionsManager, this.port);
+        this.parameterTools = new ParameterTools(this.mcpServer, this.sessionsManager, this.logger, this.port);
         this.sampleTools = new SampleTools(this.mcpServer, this.sessionsManager, this.audioService, this.logger, this.port, this.working_directory);
-        this.sessionTools = new SessionTools(this.mcpServer, this.sessionsManager, this.logger, this.port, this.working_directory);
-        this.snippetTools = new SnippetTools(this.mcpServer, this.sessionsManager, this.logger, this.working_directory);
-        // this.volumeTools = new VolumeTools(this.mcpServer, this.sessionsManager, this.audioService, this.logger, this.port, this.working_directory);
+        this.snippetTools = new SnippetTools(this.mcpServer, this.sessionsManager, this.logger);
+        this.volumeTools = new VolumeTools(this.mcpServer, this.logger);
     }
 
     private configureResources(): void {

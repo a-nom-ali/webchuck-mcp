@@ -1,5 +1,5 @@
 // apiController.ts
-import {sessionsManager, SessionsManager} from "./sessionsManager.js";
+import {SessionsManager} from "./sessionsManager.js";
 import {AudioService} from "./audioService.js";
 import {Logger} from "../utils/logger.js";
 import express from "express";
@@ -98,7 +98,9 @@ export class ApiController {
                 // Send code to WebChucK client
                 session.ws.send(JSON.stringify({
                     type: 'execute_patch',
-                    code: code
+                    fromLine,
+                    toLine,
+                    code
                 }));
 
                 return res.status(200).json({

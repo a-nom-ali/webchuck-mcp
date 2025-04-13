@@ -3,9 +3,7 @@ import {WebSocketHandler} from "../webSocketHandler.js";
 import {AudioService} from "../audioService.js";
 import {Logger} from "../../utils/logger.js";
 import express from "express";
-import fs from "fs"
-import {promisify} from 'util';
-import WebSocket from "ws";
+
 
 // Middleware for error handling
 const asyncHandler = (fn: any) => (req: any, res: any, next: any) => {
@@ -26,78 +24,97 @@ export class ParameterApiController {
     }
 
     private setupRoutes(): void {
+        // GET endpoint to retrieve one or more parameter values.
+        this.app.post('/api/parameter', asyncHandler(async (req: any, res: any) => {
+            const payload = JSON.parse(req.body);
+            const messages: any[] = [];
+            if (payload.length > 0)
+            {
+                for (const {parameters, sessionId} of payload) {
+                    try {
+                        const sessionMessages: any[] = [];
+                        if (this.sessionsManager) {
+                            let session = this.sessionsManager.get(sessionId);
+                            if (session) {
+                                session.ws.send(JSON.stringify({
+                                    type: 'get_parameter_value',
+                                    payload: parameters
+                                }));
+                                await new Promise(resolve => setTimeout(resolve, 15 * (
+                                    parameters.length > 0
+                                        ? parameters.length
+                                        : 15
+                                )));
 
-        // Get current parameter value
-        this.app.get('/api/parameter/:name', asyncHandler(async (req:any, res:any) => {
-            const {name} = req.params;
-            const {sessionId} = req.query;
+                                //Maybe we need a new reference?
+                                session = this.sessionsManager.get(sessionId);
 
-            const session = this.sessionsManager.get(sessionId);
-            if (!session) {
-                return res.status(404).json({error: 'Session not found'});
-            }
-
-            if (session.ws.readyState !== WebSocket.OPEN) {
-                return res.status(400).json({error: 'WebChucK client not connected'});
-            }
-
-            session.ws.send(JSON.stringify({
-                type: 'get_parameter_value',
-                payload: {
-                    name: name,
-                    sessionId
+                                parameters.forEach((parameter:string) => {
+                                    const value = this.sessionsManager.getParameter(sessionId, parameter);
+                                    sessionMessages.push({
+                                        name: parameter,
+                                        value
+                                    });
+                                })
+                                messages.push(sessionMessages);
+                            }
+                        }
+                    } catch (error) {
+                        const errorMessage = error instanceof Error ? error.message : String(error);
+                        messages.push(`Parameter Error (${sessionId}): ${errorMessage}\n${parameters}`);
+                    }
                 }
-            }));
-
-            // Wait a moment for the client to respond
-            await new Promise(resolve => setTimeout(resolve, 200));
-
-            const value = this.sessionsManager.getParameter(sessionId, name);
-
-            res.send({
-                success: value !== undefined,
-                name: name,
-                value
-            });
-
-            res.status(204).end();
+            }
+            return {
+                content: messages.map(sessionMessages => ({
+                    type: "text",
+                    text: JSON.stringify(sessionMessages)}))
+            };
         }));
 
-        // Update current parameter value
-        this.app.put('/api/parameter/:name', asyncHandler(async (req:any, res:any) => {
-            const {name} = req.params;
-            const {sessionId, paramValue, tween} = req.body;
+        // PUT endpoint to update one or more parameter values.
+        this.app.put('/api/parameter', asyncHandler(async (req: any, res: any) => {
+            const payload = JSON.parse(req.body);
+            const messages: any[] = [];
+            for (const {parameters, sessionId} of payload) {
+                try {
+                    if (this.sessionsManager) {
+                        const sessionMessages: any[] = [];
+                        let session = this.sessionsManager.get(sessionId);
+                        if (session) {
+                            session.ws.send(JSON.stringify({
+                                type: 'set_parameter_value',
+                                payload: parameters
+                            }));
+                            await new Promise(resolve => setTimeout(resolve, 15 * (
+                                parameters.length > 0
+                                    ? parameters.length
+                                    : 15
+                            )));
 
-            const session = this.sessionsManager.get(sessionId);
-            if (!session) {
-                return res.status(404).json({error: 'Session not found'});
-            }
+                            //Maybe we need a new reference?
+                            session = this.sessionsManager.get(sessionId);
 
-            if (session.ws.readyState !== WebSocket.OPEN) {
-                return res.status(400).json({error: 'WebChucK client not connected'});
-            }
-
-            session.ws.send(JSON.stringify({
-                type: 'set_parameter_value',
-                payload: {
-                    name: name,
-                    value: paramValue,
-                    tween,
-                    sessionId
+                            parameters.forEach((parameter:any) => {
+                                const value = this.sessionsManager.getParameter(sessionId, parameter.name);
+                                sessionMessages.push({
+                                    name: parameter.name,
+                                    value
+                                });
+                            });
+                            messages.push(sessionMessages);
+                        }
+                    }
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    messages.push(`Parameter Error (${sessionId}): ${errorMessage}\n${parameters}`);
                 }
-            }));
-
-            // Wait a moment for the client to respond
-            await new Promise(resolve => setTimeout(resolve, 200));
-
-            const value = this.sessionsManager.getParameter(sessionId, name);
-
+            }
             res.send({
-                success: value === paramValue,
-                name: name,
-                value: paramValue
+                content: messages.map(sessionMessages => ({
+                    type: "text",
+                    text: JSON.stringify(sessionMessages)}))
             });
         }));
-
     }
 }

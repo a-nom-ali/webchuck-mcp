@@ -1,15 +1,10 @@
-import {SessionsManager} from "../sessionsManager.js";
+import {Session, SessionsManager} from "../sessionsManager.js";
 import {WebSocketHandler} from "../webSocketHandler.js";
 import {AudioService} from "../audioService.js";
 import {Logger} from "../../utils/logger.js";
 import {dbRun, dbAll, dbGet} from "../DB/dbManager.js";
-
 import express from "express";
-import path from "path"
-import fs from "fs"
-import {promisify} from 'util';
-const statAsync = promisify(fs.stat);
-const readdirAsync = promisify(fs.readdir);
+import WebSocket from "ws";
 
 // Middleware for error handling
 const asyncHandler = (fn: any) => (req: any, res: any, next: any) => {
@@ -66,6 +61,46 @@ export class SnippetApiController {
             }
 
             res.json(snippets);
+        }));
+// Get all snippets with optional filtering
+        this.app.get('/api/snippet/editor/:sessionId', asyncHandler(async (req:any, res:any) => {
+            const sessionId = req.params.sessionId;
+
+            try {
+                let code = `No code available`;
+                if (this.sessionsManager) {
+                    const session:Session | undefined = this.sessionsManager.get(sessionId);
+                    if (session) {
+                        if (session.ws.readyState !== WebSocket.OPEN) {
+                            code = `The WebChucK session is not currently connected. ${session.ws.readyState} ${JSON.stringify(session)}}`;
+                        } else {
+                            session.ws.send(JSON.stringify({
+                                type: 'get_code_from_editor'
+                            }));
+
+                            await new Promise(resolve => setTimeout(resolve, 200));
+
+                            code = session.activeCode || "";
+
+                            if (!code.trim()) {
+                                code = "The editor is currently empty or no code has been executed yet.";
+                            }
+                            else {
+                                code = `Current code in the editor (Session ${session.name || sessionId}):\n\n\`\`\`chuck\n${code}\n\`\`\``
+                            }
+                        }
+                    }
+                    else {
+                        code = "No such session found."
+                    }
+                }
+                res.send(code);
+            } catch (error) {
+                console.error("Error retrieving code from editor:", error);
+                return res.status(500).json({
+                    error: `API Error retrieving code: ${error instanceof Error ? error.message : "Unknown error"}`
+                });
+            }
         }));
 
 // Get a specific snippet by ID

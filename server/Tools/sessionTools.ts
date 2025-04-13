@@ -77,43 +77,43 @@ export class SessionTools {
             {},
             async () => {
                 try {
-                    const response = await fetch(`https://localhost:${this.port}/api/debug/sessions`);
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-
-                    return {
-                        content: [{
-                            type: "text",
-                            text: `Active WebChucK sessions: ${data.size}\n${
-                                JSON.stringify(data.sessions, null, 2)
-                            }`
-                        }]
-                    };
-                    // const sessions = Array.from(this.sessionsManager.entries()).map(([id, session]) => ({
-                    //     id,
-                    //     name: session.name || 'Unnamed Session',
-                    //     status: session.status || 'unknown',
-                    //     connected: session.ws.readyState === WebSocket.OPEN
-                    // }));
+                    // const response = await fetch(`https://localhost:${this.port}/api/debug/sessions`);
                     //
-                    // const data = {
-                    //     size: this.sessionsManager.size,
-                    //     sessions: sessions,
-                    //     cwd: this.working_directory,
-                    // };
+                    // if (!response.ok) {
+                    //     throw new Error(`HTTP error: ${response.status}`);
+                    // }
+                    //
+                    // const data = await response.json();
                     //
                     // return {
                     //     content: [{
                     //         type: "text",
-                    //         text: `Active WebChucK sessions: ${sessions.length}\n${
-                    //             JSON.stringify(data, null, 2)}')
+                    //         text: `Active WebChucK sessions: ${data.size}\n${
+                    //             JSON.stringify(data.sessions, null, 2)
                     //         }`
                     //     }]
                     // };
+                    const sessions = Array.from(this.sessionsManager.entries()).map(([id, session]) => ({
+                        id,
+                        name: session.name || 'Unnamed Session',
+                        status: session.status || 'unknown',
+                        connected: session.ws.readyState === WebSocket.OPEN
+                    }));
+
+                    const data = {
+                        size: this.sessionsManager.size,
+                        sessions: sessions,
+                        cwd: this.working_directory,
+                    };
+
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `Active WebChucK sessions: ${sessions.length}\n${
+                                JSON.stringify(data, null, 2)}')
+                            }`
+                        }]
+                    };
                 } catch (error) {
                     const errorMessage = error instanceof Error ? error.message : String(error);
                     return {
@@ -135,7 +135,6 @@ export class SessionTools {
             {},
             async () => {
                 try {
-
                     // Create a list of sessions with relevant information
                     const sessions = Array.from(this.sessionsManager.entries() as Iterable<[any, any]>).map(([id, session]) => ({
                         id,

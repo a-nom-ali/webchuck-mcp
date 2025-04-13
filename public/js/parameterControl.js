@@ -204,31 +204,33 @@ const ParameterControl = (function() {
     
     // Update parameter in running ChucK instance
     async function getParameterValue(name) {
-        const parameter = activeParameters.find(p => p.name === name);
-        if (parameter)
-        {
-            const chuckInstance = WebChuckService.getChuckInstance();
+        const parameters = name && name !== "" ? [activeParameters.find(p => p.name === name)] : activeParameters;
+        for (const parameter of parameters) {
+            const chuckInstance = await WebChuckService.getChuckInstance();
 
+            console.log(parameter);
             switch (parameter.type) {
                 case 'int':
-                    return chuckInstance.getInt(name);
+                    parameter.value = await chuckInstance.getInt(parameter.name);
                     break;
                 case 'float':
-                    return chuckInstance.getFloat(name);
+                    parameter.value = await chuckInstance.getFloat(parameter.name);
                     break;
                 case 'dur':
                     // Handle duration (convert to seconds)
-                    return chuckInstance.getFloat(name);
+                    parameter.value = await chuckInstance.getFloat(parameter.name);
                     break;
                 case 'string':
                     // Handle duration (convert to seconds)
-                    return chuckInstance.getString(name);
+                    parameter.value = await chuckInstance.getString(parameter.name);
                     break;
                 default:
-                    console.warn(`Unsupported parameter type: ${type}`);
-                    return null;
+                    console.warn(`Unsupported parameter type: ${parameter.type}`);
+                    //return null;
             }
+            console.log("get:success")
         }
+        return name && name !== "" ? parameters[0].value : parameters;
     }
 
     // Update parameter in running ChucK instance
@@ -247,18 +249,19 @@ const ParameterControl = (function() {
                 console.error("Cannot update parameter: Chuck instance not available");
                 return;
             }
-            
+
+            console.log(`${type} ${name} ${value} `);
             // Use the appropriate method based on parameter type
             switch (type) {
                 case 'int':
-                    chuckInstance.setInt(name, Math.round(value));
+                    chuckInstance.setInt(name, Math.round(typeof value === "string" ? parseInt(value, 0) : value));
                     break;
                 case 'float':
-                    chuckInstance.setFloat(name, value);
+                    chuckInstance.setFloat(name, typeof value === "string" ? parseFloat(value, 0) : value);
                     break;
                 case 'dur':
                     // Handle duration (convert to seconds)
-                    chuckInstance.setFloat(name, value);
+                    chuckInstance.setFloat(name, typeof value === "string" ? parseFloat(value, 0) : value);
                     break;
                 case 'string':
                     // Handle duration (convert to seconds)
@@ -267,7 +270,8 @@ const ParameterControl = (function() {
                 default:
                     console.warn(`Unsupported parameter type: ${type}`);
             }
-            
+            console.log("set:success")
+
             UI.updateConsole(`Parameter ${name} updated to ${value}`);
         } catch (error) {
             console.error(`Error updating parameter ${name}:`, error);
