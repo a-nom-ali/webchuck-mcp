@@ -4,6 +4,11 @@ import * as UI from './ui.js';
 
 // Parameter control module
 const ParameterControl = (function() {
+    const range = new RangeTouch('input[type="range"]', {
+        addCSS: true,
+        thumbWidth: 50,
+        watch: true
+    });
     // Private variables
     let activeParameters = [];
     let isRunning = false;
