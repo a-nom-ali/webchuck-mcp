@@ -6,9 +6,11 @@
 
 _A browser-based ChucK audio programming environment with AI assistance through Model Context Protocol_
 
-</div>
-
+<span color="cyan">
 ## Work-in-progress: Snippet and Sample tools not fully functional yet. Assistance/Collaboration welcome!
+</span>
+</div>
+  
 ## Overview
 
 WebChucK MCP is a sophisticated browser-based implementation of the [ChucK](https://chuck.stanford.edu/) audio programming language integrated with the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) for AI assistance. This platform allows users to write, execute, and interact with ChucK code in a web environment, providing features for real-time parameter control, audio visualization, code management, and more.
