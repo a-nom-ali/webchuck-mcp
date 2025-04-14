@@ -6,9 +6,10 @@
 
 _A browser-based ChucK audio programming environment with AI assistance through Model Context Protocol_
 
-<span color="cyan">
+<h1 color="cyan">
 ## Work-in-progress: Snippet and Sample tools not fully functional yet. Assistance/Collaboration welcome!
-</span>
+</h1>
+
 </div>
   
 ## Overview
