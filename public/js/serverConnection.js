@@ -343,7 +343,8 @@ async function handleWebSocketMessage(event) {
                     for (let i = 0; i < data.payload.length; i++) {
                         const parameter = data.payload[i];
                         UI.updateConsole(`Setting ${parameter.name}: to ${parameter.value}`);
-                        const tween = parseFloat(parameter.tween);
+                        const tween = parseFloat(parameter.tween ? parameter.tween : "0");
+                        const delay = parseFloat(parameter.delay ? parameter.delay : "0");
                         const newValue = parseFloat(parameter.value);
                         parameters.push({
                             name: parameter.name,
@@ -359,6 +360,8 @@ async function handleWebSocketMessage(event) {
                             let timePassed = 0;
                             const slider = document.getElementById(`param-${parameter.name}`);
                             const valueDisplay = document.getElementById(`param-value-${parameter.name}`);
+                            if (delay > 0)
+                                await new Promise(resolve => setTimeout(resolve, delay * 1000));
                             const interval = setInterval(async () => {
                                 const value = startValue + ((newValue - startValue) * (timePassed / (tween * 1000)));
                                 await ParameterControl.updateParameter(parameter.name, undefined, value);
@@ -370,6 +373,8 @@ async function handleWebSocketMessage(event) {
                                 timePassed += 15;
                             }, 15);
                         } else {
+                            if (delay > 0)
+                                await new Promise(resolve => setTimeout(resolve, delay * 1000));
                             await ParameterControl.updateParameter(parameter.name, undefined, parameter.value);
                         }
                     }

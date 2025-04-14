@@ -5,6 +5,7 @@ import {Logger} from "../utils/logger.js";
 import {sessionsManager, Session} from "./sessionsManager.js";
 import {v4 as uuidv4} from "uuid";
 import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
+import {type} from "node:os";
 
 export class WebSocketHandler {
     constructor(
@@ -57,8 +58,9 @@ export class WebSocketHandler {
             play_from_library_success: this.handlePlayFromLibrarySuccess.bind(this),
             error: this.handleClientError.bind(this),
             console_messages: this.handleConsoleMessages.bind(this),
-            get_parameter_value: this.handleGetSetParameterValue.bind(this),
-            set_parameter_value: this.handleGetSetParameterValue.bind(this),
+            get_parameter_value_feedback: this.handleGetSetParameterValue.bind(this),
+            set_parameter_value_feedback: this.handleGetSetParameterValue.bind(this),
+            set_code_from_editor: this.handleSetCodeFromEditor.bind(this),
         };
 
         if (handlers[data.type]) {
@@ -210,12 +212,36 @@ export class WebSocketHandler {
         this.logger.info(`WebChucK client disconnected: ${sessionId}`);
     }
 
-    private handleGetSetParameterValue(sessionId: string, data: any) {
+    private handleGetSetParameterValue(sessionId: string, parameters: any) {
         const session = this.sessionsManager.get(sessionId);
+        this.logger.info("ALL: ${JSON.stringify(parameters, null, 2)}");
+        this.logger.info(sessionId);
+        this.logger.info(`${JSON.stringify(parameters, null, 2)}`);
         if (!session) return;
-        sessionsManager.setParameter(sessionId, data.name, data.value);
+        if (Array.isArray(parameters)) {
+            parameters.forEach(parameter => {
+                this.logger.info("IS ARRAY: ${JSON.stringify(parameter, null, 2)}");
+                this.logger.info(`${JSON.stringify(parameter, null, 2)}`);
+                this.sessionsManager.setParameter(sessionId, parameter.name, parameter.value);
+            });
+        }
+        else if (typeof parameters === 'object') {
+            this.logger.info("IS OBJECT: ${JSON.stringify(parameters, null, 2)}");
+            this.logger.info(`${JSON.stringify(parameters, null, 2)}`);
+            for (const key of Object.keys(parameters).filter(key => key !== "undefined")) {
+                const parameter = parameters[key];
+                this.logger.info("PARAM: ${JSON.stringify(parameter, null, 2)}");
+                this.logger.info(`${JSON.stringify(parameter, null, 2)}`);
+                this.sessionsManager.setParameter(sessionId, parameter.name, parameter.value);
+            }
+        }
     }
 
+    private handleSetCodeFromEditor(sessionId: string, data: any) {
+        const session = this.sessionsManager.get(sessionId);
+        if (!session) return;
+        session.activeCode = data.code;
+    }
 
     clear_execution_error_response(sessionId: string) {
         const session = this.sessionsManager.get(sessionId);
